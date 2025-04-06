@@ -10,7 +10,7 @@ repeat wait() until game.Players.LocalPlayer.Character:FindFirstChild("HumanoidR
 
 warn("UI Loaded.")
 
-local Fully_Support_Exploits = {"Krnl", "Delta", "Arcues", "Xenon", "Swift"}
+local Fully_Support_Exploits = {"Krnl", "Synapse X"}
 
 local Tween = game:GetService("TweenService")
 local Tweeninfo = TweenInfo.new
@@ -131,7 +131,7 @@ end
 local GuiName = "Shinichi Hub"
 
 function CFAHub:CreateWindow(title, gameName, intro)
-    title = title or "<font color=\"#1CB2F5\">Shinichi Hub/font>"
+    title = title or "<font color=\"#1CB2F5\">Shinichi Hub</font>"
     gameName = gameName or "N/A"
 
     for _, v in pairs(CoreGui:GetChildren()) do
@@ -151,7 +151,7 @@ function CFAHub:CreateWindow(title, gameName, intro)
         ScrollBar = Color3.fromRGB(149, 149, 149),
         NotiBackground = Color3.fromRGB(0, 0, 0),
         Glow = Color3.fromRGB(79, 195, 247),
-        Logo = "rbxassetid://7409401226"
+        Logo = "rbxassetid://78774998900413"
     }
 
     table.insert(CFAHub, title)
