@@ -2271,3 +2271,5 @@ function CFAHub:CreateWindow(title, gameName, intro)
 end
 
 return CFAHub
+
+CFAHub:AddNoti("Thông báo", "Succes Loading", 5)
