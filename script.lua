@@ -1,9 +1,7 @@
 if getgenv and tonumber(getgenv().LoadTime) then
 	task.wait(tonumber(getgenv().LoadTime))
 else
-	repeat
-		task.wait()
-	until game:IsLoaded()
+	repeat task.wait() until game:IsLoaded()
 end
 
 local VIM = game:GetService("VirtualInputManager")
