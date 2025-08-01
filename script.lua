@@ -1,4 +1,4 @@
--- Wait game load + 5s
+-- ✅ Wait game load + 5s
 repeat task.wait() until game:IsLoaded()
 task.wait(5)
 
@@ -15,13 +15,11 @@ local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
 
-local ProfilePicture = ""
-local Notifications = {}
-local NotificationGui
+local ProfilePicture, Notifications, NotificationGui = "", {}, nil
 
----------------------------
--- 📌 Notification UI
----------------------------
+-------------------------------------------------
+-- 🟩 Notification UI
+-------------------------------------------------
 local function CreateNotificationUI()
 	if NotificationGui then return NotificationGui end
 	NotificationGui = Instance.new("ScreenGui")
@@ -41,8 +39,7 @@ local function MakeNotif(title, message, duration, color)
 	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 	frame.BorderSizePixel = 0
 	frame.Parent = ui
-	local corner = Instance.new("UICorner", frame)
-	corner.CornerRadius = UDim.new(0,8)
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
 
 	local titleLabel = Instance.new("TextLabel", frame)
 	titleLabel.Text = title
@@ -78,7 +75,6 @@ local function MakeNotif(title, message, duration, color)
 		end
 	end
 	local goalPos = UDim2.new(1,-270,1,-90 - offset)
-	frame.Position = UDim2.new(1,50,1,10)
 	table.insert(Notifications, {Instance=frame,ExpireTime=os.time()+duration})
 	TweenService:Create(frame,TweenInfo.new(0.4,Enum.EasingStyle.Quint,Enum.EasingDirection.Out),{Position=goalPos}):Play()
 
@@ -101,9 +97,9 @@ local function MakeNotif(title, message, duration, color)
 	end)
 end
 
----------------------------
+-------------------------------------------------
 -- 🌐 Discord Webhook
----------------------------
+-------------------------------------------------
 local function GetProfilePicture()
 	local request = request or http_request or syn.request
 	if not request then return end
@@ -136,9 +132,15 @@ end
 
 if DCWebhook then GetProfilePicture() end
 
----------------------------
--- ⚙️ Main logic
----------------------------
+-------------------------------------------------
+-- 🔍 Helper functions
+-------------------------------------------------
+local function isInGame()
+	local specFolder = workspace:FindFirstChild("Players") and workspace.Players:FindFirstChild("Spectating")
+	if not specFolder then return false end
+	return not specFolder:FindFirstChild(LocalPlayer.Name)
+end
+
 local function findRoundTimerValue()
 	local gui = LocalPlayer.PlayerGui:FindFirstChild("RoundTimer")
 	if gui and gui.Main then
@@ -208,58 +210,63 @@ local function findNearestKiller()
 	return nearest,dist
 end
 
+-------------------------------------------------
+-- ⚙️ Main logic
+-------------------------------------------------
 local function main()
 	while true do
-		local timer=findRoundTimerValue()
-		if not timer or timer>RoundTimerThreshold then
-			MakeNotif("Hop","Không có trận gần, hop server",2)
-			teleportToRandomServer()
-			return
-		else
-			MakeNotif("Chờ","Round sắp bắt đầu...",2)
-			repeat task.wait(2)
-				local t=findRoundTimerValue()
-				if not t or t<=0 then break end
-			until false
+		-- 🔄 Check in-game chưa
+		while not isInGame() do
+			MakeNotif("Chờ trận","Đang đợi vào trận...",2)
+			task.wait(5)
 		end
 
-		MakeNotif("Vào Trận","Bắt đầu sửa generator!",2)
-		while true do
+		local timer=findRoundTimerValue()
+		if not timer or timer>RoundTimerThreshold then
+			MakeNotif("Hop","Không có round gần, hop server",2)
+			teleportToRandomServer()
+			return
+		end
+
+		MakeNotif("Auto","Đang auto generator!",2)
+		while isInGame() do
 			local gens=findGenerators()
 			if #gens==0 then break end
 			local gen=gens[1]
 			teleportToGenerator(gen)
-			MakeNotif("Sửa","Đang sửa generator",2)
 			local prompt=gen:FindFirstChild("Main") and gen.Main:FindFirstChild("Prompt")
-			while gen.Progress.Value<100 do
+			while gen.Progress.Value<100 and isInGame() do
 				local _,dist=findNearestKiller()
-				if dist and dist<=KillerRange then
+				if dist<=KillerRange then
 					local far=gens[#gens]
 					if far then teleportToGenerator(far) MakeNotif("Danger","Killer gần!",2) end
 				end
 				if prompt then fireproximityprompt(prompt) end
 				task.wait(GenTime)
 			end
-			MakeNotif("Hoàn thành","Generator xong!",2)
+			MakeNotif("Xong","Generator hoàn thành",2)
 		end
-		MakeNotif("Xong","Đợi hết round...",2)
-		repeat
+
+		MakeNotif("Đợi round hết","Đang đợi...",2)
+		while isInGame() do
 			local timer=findRoundTimerValue()
 			if not timer or timer<=0 then break end
 			local _,dist=findNearestKiller()
-			if dist and dist<=KillerRange then
+			if dist<=KillerRange then
+				local gens=findGenerators()
 				local far=gens[#gens]
 				if far then teleportToGenerator(far) end
 			end
 			task.wait(2)
-		until false
+		end
+
 		MakeNotif("Hop","Round hết, hop server",2)
 		teleportToRandomServer()
 		return
 	end
 end
 
-task.spawn(function() -- Chết cũng hop
+task.spawn(function()
 	while true do
 		local char=LocalPlayer.Character
 		if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health<=0 then
