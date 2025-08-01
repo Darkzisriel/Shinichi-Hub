@@ -521,99 +521,102 @@ local function PathFinding(generator)
 
 	return true
 end
-local function MoveAwayFromTarget(targetPosition)
-    local character = Players.LocalPlayer.Character
-    if not character or not character:FindFirstChild("HumanoidRootPart") then return false end
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    local rootPart = character.HumanoidRootPart
+local function FindSafeGenerator(killer)
+    local generators = findGenerators()
+    if not killer then return generators end
 
-    local currentPos = rootPart.Position
-    local direction = (currentPos - targetPosition).Unit
-    local awayDistance = 80
-
-    local destination = currentPos + direction * awayDistance
-
-    local path = PathfindingService:CreatePath({
-        AgentRadius = 2.5,
-        AgentHeight = 1,
-        AgentCanJump = false,
-    })
-
-    local success, err = pcall(function()
-        path:ComputeAsync(currentPos, destination)
-    end)
-    if not success or path.Status ~= Enum.PathStatus.Success then
-        print("Failed to compute path to move away:", err)
-        return false
-    end
-
-    local waypoints = path:GetWaypoints()
-    for _, waypoint in ipairs(waypoints) do
-        humanoid:MoveTo(waypoint.Position)
-        local reached = false
-        local startTime = tick()
-        while not reached and tick() - startTime < 5 do
-            if (rootPart.Position - waypoint.Position).Magnitude < 5 then
-                reached = true
-            end
-            RunService.Heartbeat:Wait()
-        end
-        if not reached then
-            return false
+    -- Chỉ lấy generator cách killer > 80 studs
+    local safeGenerators = {}
+    for _, g in ipairs(generators) do
+        local distance = (g:GetPivot().Position - killer.Position).Magnitude
+        if distance > 80 then
+            table.insert(safeGenerators, g)
         end
     end
-    return true
+
+    return safeGenerators
 end
 
+local function WaitUntilKillerFar(killer, safeDistance)
+    while killer and killer.Parent and (Players.LocalPlayer.Character:GetPivot().Position - killer.Position).Magnitude <= safeDistance do
+        print("Killer quá gần, đợi...")
+        task.wait(1)
+    end
+end
 
 local function DoAllGenerators()
-    for _, g in ipairs(findGenerators()) do
+    while true do
         local killer = getValidTarget()
-        if killer and (Players.LocalPlayer.Character:GetPivot().Position - killer.Position).Magnitude <= 80 then
-            local success = MoveAwayFromTarget(killer.Position)
-            if not success then
-                -- Nếu di chuyển không thành công, fallback teleport
-                local away = (Players.LocalPlayer.Character:GetPivot().Position - killer.Position).Unit * 30
-                Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(Players.LocalPlayer.Character:GetPivot().Position + away)
-            end
-            task.wait(0.5)
+        local generators = FindSafeGenerator(killer)
+
+        if #generators == 0 then
+            MakeNotif("PathfindGens", "Không tìm thấy generator an toàn!", 3, Color3.fromRGB(255,0,0))
+            task.wait(2)
+            continue
         end
 
-        local pathStarted = PathFinding(g)
-        if pathStarted then
-            task.wait(0.5)
-            local prompt = g:FindFirstChild("Main") and g.Main:FindFirstChild("Prompt")
-            if prompt then
-                fireproximityprompt(prompt)
-                task.wait(0.5)
+        for _, g in ipairs(generators) do
+            killer = getValidTarget()
+            if killer and (Players.LocalPlayer.Character:GetPivot().Position - killer.Position).Magnitude <= 80 then
+                MakeNotif("PathfindGens", "Killer gần quá, né trước!", 2, Color3.fromRGB(255, 100, 0))
+                local success = MoveAwayFromTarget(killer.Position)
+                if not success then
+                    local away = (Players.LocalPlayer.Character:GetPivot().Position - killer.Position).Unit * 30
+                    Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(Players.LocalPlayer.Character:GetPivot().Position + away)
+                end
+                WaitUntilKillerFar(killer, 80)
+                break -- Sau khi né xong thì chạy lại tìm generator an toàn khác
             end
 
-            for i = 1, 6 do
-                local killer = getValidTarget()
-                if killer and (Players.LocalPlayer.Character:GetPivot().Position - killer.Position).Magnitude <= 80 then
-                    local success = MoveAwayFromTarget(killer.Position)
-                    if not success then
-                        local away = (Players.LocalPlayer.Character:GetPivot().Position - killer.Position).Unit * 30
-                        Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(Players.LocalPlayer.Character:GetPivot().Position + away)
-                    end
+            local pathStarted = PathFinding(g)
+            if pathStarted then
+                task.wait(0.5)
+                local prompt = g:FindFirstChild("Main") and g.Main:FindFirstChild("Prompt")
+                if prompt then
+                    fireproximityprompt(prompt)
                     task.wait(0.5)
                 end
 
-                if g.Progress.Value < 100 and g:FindFirstChild("Remotes") and g.Remotes:FindFirstChild("RE") then
-                    g.Remotes.RE:FireServer()
-                end
-                if i < 6 and g.Progress.Value < 100 then
-                    task.wait(GenTime)
+                for i = 1, 6 do
+                    killer = getValidTarget()
+                    if killer and (Players.LocalPlayer.Character:GetPivot().Position - killer.Position).Magnitude <= 80 then
+                        MakeNotif("PathfindGens", "Killer lại đến gần! Né tiếp...", 2, Color3.fromRGB(255, 100, 0))
+                        local success = MoveAwayFromTarget(killer.Position)
+                        if not success then
+                            local away = (Players.LocalPlayer.Character:GetPivot().Position - killer.Position).Unit * 30
+                            Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(Players.LocalPlayer.Character:GetPivot().Position + away)
+                        end
+                        WaitUntilKillerFar(killer, 80)
+                        break -- Sau khi né, bỏ generator hiện tại, tìm generator khác
+                    end
+
+                    if g.Progress.Value < 100 and g:FindFirstChild("Remotes") and g.Remotes:FindFirstChild("RE") then
+                        g.Remotes.RE:FireServer()
+                    end
+                    if i < 6 and g.Progress.Value < 100 then
+                        task.wait(GenTime)
+                    end
                 end
             end
-        else
-            return
         end
+
+        -- Kiểm tra nếu còn generator chưa xong, lặp lại
+        local unfinished = findGenerators()
+        local stillLeft = false
+        for _, g in ipairs(unfinished) do
+            if g.Progress.Value < 100 then
+                stillLeft = true
+                break
+            end
+        end
+        if not stillLeft then break end
     end
+
     SendWebhook("Generator Autofarm", "Finished all generators.", 0x00FF00)
     task.wait(1)
     teleportToRandomServer()
 end
+
 
 local function AmIInGameYet()
 	workspace.Players.Survivors.ChildAdded:Connect(function(child)
