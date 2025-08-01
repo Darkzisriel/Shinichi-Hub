@@ -157,6 +157,87 @@ task.spawn(function()
 	end)
 end)
 
+local killerAnims = {
+	"126830014841198","126355327951215","121086746534252","18885909645",
+	"98456918873918","105458270463374","83829782357897","125403313786645",
+	"118298475669935","82113744478546","70371667919898","99135633258223",
+	"97167027849946","109230267448394","139835501033932","126896426760253",
+	"109667959938617","126681776859538","129976080405072","121293883585738"
+}
+local dodgeAnims = {
+	Left = "rbxassetid://17096325697",
+	Right = "rbxassetid://17096327600",
+	Forward = "rbxassetid://17096329187",
+	Backward = "rbxassetid://17096330733",
+}
+
+local directions = {"Left","Right","Forward","Backward"}
+local currentDirection = 1
+local ultraInstinctEnabled = true
+local canDodge = true
+local dodgeDistance = 9
+
+local function playDodge()
+	if not canDodge then return end
+	canDodge = false
+	local char = Players.LocalPlayer.Character
+	if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	if not hrp or not hum then return end
+
+	local dir = directions[currentDirection]
+	local offset = Vector3.new()
+	if dir == "Left" then
+		offset = -hrp.CFrame.RightVector * dodgeDistance
+	elseif dir == "Right" then
+		offset = hrp.CFrame.RightVector * dodgeDistance
+	elseif dir == "Forward" then
+		offset = hrp.CFrame.LookVector * dodgeDistance
+	elseif dir == "Backward" then
+		offset = -hrp.CFrame.LookVector * dodgeDistance
+	end
+
+	local anim = Instance.new("Animation")
+	anim.AnimationId = dodgeAnims[dir]
+	local track = hum:LoadAnimation(anim)
+	track:Play()
+	char:PivotTo(CFrame.new(hrp.Position + offset))
+
+	task.delay(2, function()
+		canDodge = true
+	end)
+end
+
+RunService.Heartbeat:Connect(function()
+	if not ultraInstinctEnabled then return end
+	local char = Players.LocalPlayer.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= Players.LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+			local dist = (plr.Character.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
+			if dist <= 25 then
+				local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+				local animator = hum and hum:FindFirstChildOfClass("Animator")
+				if animator then
+					for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+						local animObj = track.Animation
+						if animObj and animObj.AnimationId then
+							local animId = tostring(animObj.AnimationId):match("%d+")
+							if animId and table.find(killerAnims, animId) then
+								if canDodge then
+									playDodge()
+								end
+								return
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+end)
+
 local function GetProfilePicture()
 	local PlayerID=Players.LocalPlayer.UserId
 	local req = request or http_request or syn.request
@@ -398,3 +479,8 @@ end
 pcall(task.spawn,DidiDie)
 pcall(task.spawn,CheckNearbyKillerAndRun)
 AmIInGameYet()
+
+Players.LocalPlayer.CharacterAdded:Connect(function()
+	task.wait(1)
+	ultraInstinctEnabled = true
+end)
