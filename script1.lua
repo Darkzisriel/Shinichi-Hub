@@ -216,6 +216,7 @@ end
 local function main()
 	while true do
 		-- ✅ Step 1: check roundtimer trước
+		task.wait(1)
 		local timer=findRoundTimerValue()
 		if not timer or timer>RoundTimerThreshold then
 			MakeNotif("Hop","Không có round gần, hop server",2)
