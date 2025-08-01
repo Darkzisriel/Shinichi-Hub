@@ -272,7 +272,7 @@ local function CheckNearbyKillerAndRun()
 				local char = Players.LocalPlayer.Character
 				if char and char:FindFirstChild("HumanoidRootPart") and killer:FindFirstChild("HumanoidRootPart") then
 					local dist = (killer.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
-					if dist <= 100 then
+					if dist <= 50 then
 						local furthestGen = GetFurthestGenerator()
 						if furthestGen then
 							char.HumanoidRootPart.CFrame = furthestGen:GetPivot() + furthestGen:GetPivot().LookVector*3
