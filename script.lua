@@ -1,25 +1,29 @@
--- ✅ Wait game load + 5s
-repeat task.wait() until game:IsLoaded()
-task.wait(10)
+if getgenv and tonumber(getgenv().LoadTime) then
+	task.wait(tonumber(getgenv().LoadTime))
+else
+	repeat task.wait() until game:IsLoaded()
+end
 
--- SETTINGS
-local DCWebhook = (getgenv and getgenv().DiscordWebhook) or false
-local GenTime = tonumber(getgenv and getgenv().GeneratorTime) or 2.5
-local RoundTimerThreshold = 90
-local KillerRange = 60
-local PlaceId = game.PlaceId
-
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local TeleportService = game:GetService("TeleportService")
+local VIM = game:GetService("VirtualInputManager")
 local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
-local ProfilePicture, Notifications, NotificationGui = "", {}, nil
+local DCWebhook = (getgenv and getgenv().DiscordWebhook) or false
+local GenTime = tonumber(getgenv and getgenv().GeneratorTime) or 2.5
+local PlaceId = game.PlaceId
 
--------------------------------------------------
--- 🟩 Notification UI
--------------------------------------------------
+local ProfilePicture = ""
+local Notifications = {}
+
+local LocalPlayer = Players.LocalPlayer
+
+-- Notification UI (giống đoạn bạn gửi)
+local NotificationGui = nil
+local AliveNotifications = {}
+
 local function CreateNotificationUI()
 	if NotificationGui then return NotificationGui end
 	NotificationGui = Instance.new("ScreenGui")
@@ -42,7 +46,7 @@ local function MakeNotif(title, message, duration, color)
 	Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
 
 	local titleLabel = Instance.new("TextLabel", frame)
-	titleLabel.Text = title
+	titleLabel.Text = title or "Notification"
 	titleLabel.Font = Enum.Font.SourceSansBold
 	titleLabel.TextSize = 18
 	titleLabel.TextColor3 = color
@@ -52,7 +56,7 @@ local function MakeNotif(title, message, duration, color)
 	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 	local messageLabel = Instance.new("TextLabel", frame)
-	messageLabel.Text = message
+	messageLabel.Text = message or ""
 	messageLabel.Font = Enum.Font.SourceSans
 	messageLabel.TextSize = 16
 	messageLabel.TextColor3 = Color3.fromRGB(255,255,255)
@@ -67,39 +71,42 @@ local function MakeNotif(title, message, duration, color)
 	colorBar.BackgroundColor3 = color
 	colorBar.BorderSizePixel = 0
 
-	-- Vị trí
+	-- Vị trí notification stack
 	local offset = 0
-	for _, notif in ipairs(Notifications) do
+	for _, notif in ipairs(AliveNotifications) do
 		if notif.Instance and notif.Instance.Parent then
 			offset = offset + notif.Instance.Size.Y.Offset + 10
 		end
 	end
-	local goalPos = UDim2.new(1,-270,1,-90 - offset)
-	table.insert(Notifications, {Instance=frame,ExpireTime=os.time()+duration})
-	TweenService:Create(frame,TweenInfo.new(0.4,Enum.EasingStyle.Quint,Enum.EasingDirection.Out),{Position=goalPos}):Play()
 
-	-- Xoá sau
+	local goalPos = UDim2.new(1,-270,1,-90 - offset)
+	table.insert(AliveNotifications, {Instance=frame, ExpireTime=os.time() + duration})
+	TweenService:Create(frame,TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = goalPos}):Play()
+
 	task.spawn(function()
 		task.wait(duration)
-		local tweenOut = TweenService:Create(frame,TweenInfo.new(0.4,Enum.EasingStyle.Quint,Enum.EasingDirection.In),{Position=UDim2.new(1,50,frame.Position.Y.Scale,frame.Position.Y.Offset)})
+		local tweenOut = TweenService:Create(frame,TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {Position = UDim2.new(1, 50, frame.Position.Y.Scale, frame.Position.Y.Offset)})
 		tweenOut:Play()
 		tweenOut.Completed:Wait()
-		for i,v in ipairs(Notifications) do if v.Instance==frame then table.remove(Notifications,i) break end end
+		for i,v in ipairs(AliveNotifications) do
+			if v.Instance == frame then
+				table.remove(AliveNotifications,i)
+				break
+			end
+		end
 		frame:Destroy()
 		-- reposition
-		local newOffset=0
-		for _, notif in ipairs(Notifications) do
+		local newOffset = 0
+		for _, notif in ipairs(AliveNotifications) do
 			if notif.Instance and notif.Instance.Parent then
-				TweenService:Create(notif.Instance,TweenInfo.new(0.3,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Position=UDim2.new(1,-270,1,-90 - newOffset)}):Play()
-				newOffset = newOffset + notif.Instance.Size.Y.Offset +10
+				TweenService:Create(notif.Instance,TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(1,-270,1,-90 - newOffset)}):Play()
+				newOffset = newOffset + notif.Instance.Size.Y.Offset + 10
 			end
 		end
 	end)
 end
 
--------------------------------------------------
--- 🌐 Discord Webhook
--------------------------------------------------
+-- Discord webhook lấy avatar
 local function GetProfilePicture()
 	local request = request or http_request or syn.request
 	if not request then return end
@@ -132,50 +139,11 @@ end
 
 if DCWebhook then GetProfilePicture() end
 
--------------------------------------------------
--- 🔍 Helper functions
--------------------------------------------------
+-- Kiểm tra người chơi có trong game chưa
 local function isInGame()
 	local specFolder = workspace:FindFirstChild("Players") and workspace.Players:FindFirstChild("Spectating")
 	if not specFolder then return false end
 	return not specFolder:FindFirstChild(LocalPlayer.Name)
-end
-
-local function findRoundTimerValue()
-	local gui = LocalPlayer.PlayerGui:FindFirstChild("RoundTimer")
-	if gui and gui.Main then
-		local content = gui.Main:FindFirstChild("Time")
-		if content and content:FindFirstChild("ContentText") then
-			local txt = content.ContentText.Text
-			if txt and txt:match("^%d+:%d%d$") then
-				local min,sec=txt:match("^(%d+):(%d%d)$")
-				return tonumber(min)*60+tonumber(sec)
-			end
-		end
-	end
-	return nil
-end
-
-local function teleportToRandomServer()
-	local req = request or http_request or syn.request
-	local url = ("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100"):format(PlaceId)
-	local s,res=pcall(function() return req({Url=url,Method="GET"}) end)
-	if s and res and res.Body then
-		local data=HttpService:JSONDecode(res.Body)
-		if data and data.data and #data.data>0 then
-			local candidates={}
-			for _,sv in ipairs(data.data) do
-				if sv.playing<(sv.maxPlayers*0.4) then table.insert(candidates,sv) end
-			end
-			if #candidates==0 then candidates=data.data end
-			local chosen=candidates[math.random(1,#candidates)]
-			if chosen and chosen.id then
-				MakeNotif("Hop Server","Đến server mới",2)
-				if DCWebhook then SendWebhook("Hop Server","Teleported to "..chosen.id,0x00ff00) end
-				TeleportService:TeleportToPlaceInstance(PlaceId,chosen.id)
-			end
-		end
-	end
 end
 
 local function findGenerators()
@@ -210,74 +178,121 @@ local function findNearestKiller()
 	return nearest,dist
 end
 
--------------------------------------------------
--- ⚙️ Main logic
--------------------------------------------------
+local function teleportToRandomServer()
+	local req = request or http_request or syn.request
+	if not req then
+		MakeNotif("Error", "No request function available", 5, Color3.fromRGB(255, 0, 0))
+		return
+	end
+	local url = ("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100"):format(PlaceId)
+	local s,res=pcall(function() return req({Url=url,Method="GET"}) end)
+	if s and res and res.Body then
+		local data=HttpService:JSONDecode(res.Body)
+		if data and data.data and #data.data>0 then
+			local candidates={}
+			for _,sv in ipairs(data.data) do
+				if sv.playing<(sv.maxPlayers*0.4) then table.insert(candidates,sv) end
+			end
+			if #candidates==0 then candidates=data.data end
+			local chosen=candidates[math.random(1,#candidates)]
+			if chosen and chosen.id then
+				MakeNotif("Hop Server","Đến server mới",2)
+				if DCWebhook then SendWebhook("Hop Server","Teleported to "..chosen.id,0x00ff00) end
+				TeleportService:TeleportToPlaceInstance(PlaceId,chosen.id)
+			end
+		end
+	end
+end
+
 local function main()
 	while true do
-		-- ✅ Step 1: check roundtimer trước
-		task.wait(1)
-		local timer=findRoundTimerValue()
-		if not timer or timer>RoundTimerThreshold then
-			MakeNotif("Hop","Không có round gần, hop server",2)
+		-- SỬ DỤNG PHẦN KIỂM TRA ROUND TIMER THEO BẠN GỬI
+		local timerValue = nil
+		pcall(function()
+			local timerText = LocalPlayer.PlayerGui:WaitForChild("RoundTimer").Main.Time.ContentText
+			local m,s = timerText:match("(%d+):(%d+)")
+			if m and s then
+				timerValue = tonumber(m)*60 + tonumber(s)
+			end
+		end)
+		if not timerValue then
+			MakeNotif("Hop", "Không đọc được RoundTimer, hop server", 3, Color3.fromRGB(255, 0, 0))
+			teleportToRandomServer()
+			return
+		end
+		MakeNotif("RoundTimer", "Round còn " .. timerValue .. " giây.", 3, Color3.fromRGB(115, 194, 89))
+		if timerValue > 90 then
+			MakeNotif("Hop", "Round còn dài (>90s), hop server", 3, Color3.fromRGB(255, 0, 0))
 			teleportToRandomServer()
 			return
 		end
 
-		-- ✅ Step 2: chờ vào in-game
-		MakeNotif("Chờ","Round sắp bắt đầu, đợi vào trận...",2)
-		repeat task.wait(2) until isInGame()
+		-- Đợi vào game
+		MakeNotif("Chờ", "Đợi vào trận...", 3, Color3.fromRGB(255, 255, 0))
+		repeat task.wait(1) until isInGame()
 
-		-- ✅ Step 3: auto generator
-		MakeNotif("Auto","Đang auto generator!",2)
+		-- Auto generator
+		MakeNotif("Auto", "Bắt đầu auto generator", 3, Color3.fromRGB(0, 255, 0))
 		while isInGame() do
-			local gens=findGenerators()
-			if #gens==0 then break end
-			local gen=gens[1]
+			local gens = findGenerators()
+			if #gens == 0 then break end
+			local gen = gens[1]
 			teleportToGenerator(gen)
-			local prompt=gen:FindFirstChild("Main") and gen.Main:FindFirstChild("Prompt")
-			while gen.Progress.Value<100 and isInGame() do
-				local _,dist=findNearestKiller()
-				if dist<=KillerRange then
-					local far=gens[#gens]
-					if far then teleportToGenerator(far) MakeNotif("Danger","Killer gần!",2) end
+			local prompt = gen:FindFirstChild("Main") and gen.Main:FindFirstChild("Prompt")
+			while gen.Progress.Value < 100 and isInGame() do
+				local _, dist = findNearestKiller()
+				if dist <= 60 then
+					local farGen = gens[#gens]
+					if farGen then
+						teleportToGenerator(farGen)
+						MakeNotif("Danger", "Killer gần!", 3, Color3.fromRGB(255, 0, 0))
+					end
 				end
-				if prompt then fireproximityprompt(prompt) end
+				if prompt then
+					fireproximityprompt(prompt)
+				end
 				task.wait(GenTime)
 			end
-			MakeNotif("Xong","Generator hoàn thành",2)
+			MakeNotif("Xong", "Generator hoàn thành", 3, Color3.fromRGB(0, 255, 0))
 		end
 
-		-- ✅ Step 4: đợi round hết
-		MakeNotif("Đợi","Đang đợi round kết thúc...",2)
+		-- Đợi hết round
+		MakeNotif("Đợi", "Đợi round kết thúc...", 3, Color3.fromRGB(255, 255, 0))
 		while isInGame() do
-			local timer=findRoundTimerValue()
-			if not timer or timer<=0 then break end
-			local _,dist=findNearestKiller()
-			if dist<=KillerRange then
-				local gens=findGenerators()
-				local far=gens[#gens]
-				if far then teleportToGenerator(far) end
+			local timerNow = nil
+			pcall(function()
+				local timerText = LocalPlayer.PlayerGui:WaitForChild("RoundTimer").Main.Time.ContentText
+				local m,s = timerText:match("(%d+):(%d+)")
+				if m and s then
+					timerNow = tonumber(m)*60 + tonumber(s)
+				end
+			end)
+			if not timerNow or timerNow <= 0 then break end
+			local _, dist = findNearestKiller()
+			if dist <= 60 then
+				local gens = findGenerators()
+				local farGen = gens[#gens]
+				if farGen then teleportToGenerator(farGen) end
 			end
 			task.wait(2)
 		end
 
-		MakeNotif("Hop","Round hết, hop server",2)
+		MakeNotif("Hop", "Round hết, hop server", 3, Color3.fromRGB(255, 0, 0))
 		teleportToRandomServer()
 		return
 	end
 end
 
+-- Giám sát chết để hop server
 task.spawn(function()
-	while true do
-		local char=LocalPlayer.Character
-		if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health<=0 then
-			MakeNotif("Chết","Bạn đã chết!",2)
-			if DCWebhook then SendWebhook("Bạn chết","Đang hop server",0xff0000) end
+	while task.wait(1) do
+		local char = LocalPlayer.Character
+		if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health <= 0 then
+			MakeNotif("Chết", "Bạn đã chết!", 3, Color3.fromRGB(255, 0, 0))
+			if DCWebhook then SendWebhook("Bạn chết", "Đang hop server", 0xFF0000) end
 			teleportToRandomServer()
 			break
 		end
-		task.wait(1)
 	end
 end)
 
