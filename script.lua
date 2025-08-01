@@ -16,6 +16,7 @@ local GenTime = tonumber(getgenv and getgenv().GeneratorTime) or 2.5
 local NotificationGui
 local Notifications = {}
 local ProfilePicture = ""
+local isInGame = false
 
 local function CreateNotificationUI()
 	if NotificationGui then return NotificationGui end
@@ -157,9 +158,11 @@ end
 local function FindNearestKiller()
 	local nearestKiller = nil
 	local nearestDistance = math.huge
+	local localChar = Players.LocalPlayer.Character
+	if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then return nil, nil end
 	for _, killer in ipairs(workspace.Players.Killers:GetChildren()) do
 		if killer:FindFirstChild("HumanoidRootPart") then
-			local dist = (killer.HumanoidRootPart.Position - Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+			local dist = (killer.HumanoidRootPart.Position - localChar.HumanoidRootPart.Position).Magnitude
 			if dist < nearestDistance then
 				nearestDistance = dist
 				nearestKiller = killer
@@ -194,7 +197,7 @@ end
 
 local function AutoJumpIfKillerNear()
 	local killer, dist = FindNearestKiller()
-	if killer and dist <= 60 then
+	if killer and dist and dist <= 60 then
 		local humanoid = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
 		if humanoid and humanoid:GetState() ~= Enum.HumanoidStateType.Jumping then
 			humanoid.Jump = true
@@ -222,15 +225,16 @@ local function doAllGenerators()
 		return false
 	end
 	local hrp = char.HumanoidRootPart
-	while true do
+	while isInGame do
 		local gens = findGenerators()
 		if #gens == 0 then
 			MakeNotif("Thông báo", "Không còn generator để sửa!", 5, Color3.fromRGB(255, 255, 0))
 			return true
 		end
 		for i, gen in ipairs(gens) do
+			if not isInGame then return false end
 			local killer, dist = FindNearestKiller()
-			if killer and dist <= 60 then
+			if killer and dist and dist <= 60 then
 				MakeNotif("Killer gần!", "Teleport đến generator xa hơn để an toàn", 5, Color3.fromRGB(255, 0, 0))
 				TeleportToSafeGenerator()
 				return false
@@ -243,9 +247,10 @@ local function doAllGenerators()
 			end
 			local startTime = tick()
 			while gen.Progress.Value < 100 do
+				if not isInGame then return false end
 				AutoJumpIfKillerNear()
 				local killerNow, distNow = FindNearestKiller()
-				if killerNow and distNow <= 60 then
+				if killerNow and distNow and distNow <= 60 then
 					MakeNotif("Killer lại gần!", "Dừng sửa và teleport an toàn", 5, Color3.fromRGB(255, 0, 0))
 					TeleportToSafeGenerator()
 					return false
@@ -261,6 +266,7 @@ local function doAllGenerators()
 			MakeNotif("Hoàn thành", "Đã sửa xong generator #" .. i, 5, Color3.fromRGB(0, 255, 0))
 		end
 	end
+	return true
 end
 
 local function teleportToRandomServer()
@@ -353,10 +359,44 @@ end)
 
 task.spawn(function()
 	while true do
-		local success = doAllGenerators()
-		if not success then
-			task.wait(5)
-		end
 		task.wait(0.5)
+		if isInGame then
+			local success = doAllGenerators()
+			if not success then
+				task.wait(5)
+			end
+		else
+			task.wait(2)
+		end
+	end
+end)
+
+-- Kiểm tra xem player có đang ở trong game không
+task.spawn(function()
+	while true do
+		task.wait(1)
+		-- Nếu có workspace.Players.Spectating và player local đang spectate thì không trong game
+		local spectating = workspace:FindFirstChild("Players") and workspace.Players:FindFirstChild("Spectating")
+		local localUserId = Players.LocalPlayer.UserId
+		if spectating then
+			local isSpectating = spectating:FindFirstChild(tostring(localUserId))
+			if isSpectating then
+				if isInGame then
+					MakeNotif("Trạng thái", "Bạn hiện đang ở chế độ Spectating, tạm dừng script", 5, Color3.fromRGB(255, 165, 0))
+				end
+				isInGame = false
+			else
+				if not isInGame then
+					MakeNotif("Trạng thái", "Bạn đã vào lại game, script hoạt động lại", 5, Color3.fromRGB(0, 255, 0))
+				end
+				isInGame = true
+			end
+		else
+			-- Nếu không có spectating folder, mặc định bật script
+			if not isInGame then
+				MakeNotif("Trạng thái", "Không phát hiện spectating, bật script", 5, Color3.fromRGB(0, 255, 0))
+			end
+			isInGame = true
+		end
 	end
 end)
