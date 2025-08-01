@@ -206,7 +206,7 @@ end
 
 local function main()
 	while true do
-		-- SỬ DỤNG PHẦN KIỂM TRA ROUND TIMER THEO BẠN GỬI
+		-- Check round timer lúc vào script
 		local timerValue = nil
 		pcall(function()
 			local timerText = LocalPlayer.PlayerGui:WaitForChild("RoundTimer").Main.Time.ContentText
@@ -231,33 +231,28 @@ local function main()
 		MakeNotif("Chờ", "Đợi vào trận...", 3, Color3.fromRGB(255, 255, 0))
 		repeat task.wait(1) until isInGame()
 
-		-- Auto generator
+		-- Auto làm hết tất cả generator
 		MakeNotif("Auto", "Bắt đầu auto generator", 3, Color3.fromRGB(0, 255, 0))
-		while isInGame() do
-			local gens = findGenerators()
-			if #gens == 0 then break end
-			local gen = gens[1]
+		local gens = findGenerators()
+		for _, gen in ipairs(gens) do
 			teleportToGenerator(gen)
 			local prompt = gen:FindFirstChild("Main") and gen.Main:FindFirstChild("Prompt")
 			while gen.Progress.Value < 100 and isInGame() do
 				local _, dist = findNearestKiller()
 				if dist <= 60 then
+					MakeNotif("Danger", "Killer gần!", 3, Color3.fromRGB(255, 0, 0))
+					-- Di chuyển ra xa generator gần killer nhất (có thể là generator cuối)
 					local farGen = gens[#gens]
-					if farGen then
-						teleportToGenerator(farGen)
-						MakeNotif("Danger", "Killer gần!", 3, Color3.fromRGB(255, 0, 0))
-					end
+					if farGen then teleportToGenerator(farGen) end
 				end
-				if prompt then
-					fireproximityprompt(prompt)
-				end
+				if prompt then fireproximityprompt(prompt) end
 				task.wait(GenTime)
 			end
 			MakeNotif("Xong", "Generator hoàn thành", 3, Color3.fromRGB(0, 255, 0))
 		end
 
-		-- Đợi hết round
-		MakeNotif("Đợi", "Đợi round kết thúc...", 3, Color3.fromRGB(255, 255, 0))
+		-- Sau khi hoàn thành hết generator, đợi round kết thúc
+		MakeNotif("Đợi", "Hoàn thành generator, đợi round kết thúc...", 3, Color3.fromRGB(255, 255, 0))
 		while isInGame() do
 			local timerNow = nil
 			pcall(function()
@@ -268,16 +263,17 @@ local function main()
 				end
 			end)
 			if not timerNow or timerNow <= 0 then break end
+
 			local _, dist = findNearestKiller()
 			if dist <= 60 then
-				local gens = findGenerators()
-				local farGen = gens[#gens]
+				local gens2 = findGenerators()
+				local farGen = gens2[#gens2]
 				if farGen then teleportToGenerator(farGen) end
 			end
 			task.wait(2)
 		end
 
-		MakeNotif("Hop", "Round hết, hop server", 3, Color3.fromRGB(255, 0, 0))
+		MakeNotif("Hop", "Round kết thúc, hop server", 3, Color3.fromRGB(255, 0, 0))
 		teleportToRandomServer()
 		return
 	end
