@@ -10,7 +10,6 @@ local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
 
 local DCWebhook = (getgenv and getgenv().DiscordWebhook) or false
 local GenTime = tonumber(getgenv and getgenv().GeneratorTime) or 2.5
@@ -178,7 +177,7 @@ task.spawn(function()
 	end
 end)
 
-MakeNotif("Gen Pathfinding Shit", "It Loaded!", 5, Color3.fromRGB(115, 194, 89))
+MakeNotif("Gen Teleport Shit", "It Loaded!", 5, Color3.fromRGB(115, 194, 89))
 
 local function GetProfilePicture()
 	local PlayerID = game:GetService("Players").LocalPlayer.UserId
@@ -236,7 +235,7 @@ local function SendWebhook(Title, Description, Color, ProfilePicture, Footer)
 		end
 	end)
 
-	MakeNotif("PathfindGens", "Sent webhook: " .. Title .. "\n" .. Description, 5, Color3.fromRGB(115, 194, 89))
+	MakeNotif("Gen Teleport", "Sent webhook: " .. Title .. "\n" .. Description, 5, Color3.fromRGB(115, 194, 89))
 	if not success then
 		print("Error: " .. errorMessage)
 	end
@@ -302,7 +301,7 @@ local function teleportToRandomServer()
 
 			Counter = Counter + 1
 			MakeNotif(
-				"PathfindGens",
+				"Gen Teleport",
 				"Retrying to get a server... Attempt " .. Counter .. "/" .. MaxRetry,
 				5,
 				Color3.fromRGB(255, 0, 0)
@@ -318,162 +317,12 @@ task.delay(2.5, function()
 		local minutes, seconds = timer:match("(%d+):(%d+)")
 		local totalSeconds = tonumber(minutes) * 60 + tonumber(seconds)
 		print(totalSeconds .. " Left till round end.")
-		MakeNotif("PathfindGens", "Round ends in " .. totalSeconds .. " seconds.", 5, Color3.fromRGB(115, 194, 89))
+		MakeNotif("Gen Teleport", "Round ends in " .. totalSeconds .. " seconds.", 5, Color3.fromRGB(115, 194, 89))
 		if totalSeconds > 90 then
 			teleportToRandomServer()
 		end
 	end)
 end)
-
-local function findGenerators()
-	local folder = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Ingame")
-	local map = folder and folder:FindFirstChild("Map")
-	local generators = {}
-	if map then
-		for _, g in ipairs(map:GetChildren()) do
-			if g.Name == "Generator" and g.Progress.Value < 100 then
-				local playersNearby = false
-				for _, player in ipairs(Players:GetPlayers()) do
-					if player ~= Players.LocalPlayer and player:DistanceFromCharacter(g:GetPivot().Position) <= 25 then
-						playersNearby = true
-					end
-				end
-				if not playersNearby then
-					table.insert(generators, g)
-				end
-			end
-		end
-	end
-
-	table.sort(generators, function(a, b)
-		local player = Players.LocalPlayer
-		local character = player.Character
-		if not character or not character:FindFirstChild("HumanoidRootPart") then
-			return false
-		end
-		local rootPart = character:FindFirstChild("HumanoidRootPart")
-		local aPosition = a:IsA("Model") and a:GetPivot().Position or a.Position
-		local bPosition = b:IsA("Model") and b:GetPivot().Position or b.Position
-		return (aPosition - rootPart.Position).Magnitude < (bPosition - rootPart.Position).Magnitude
-	end)
-
-	return generators
-end
-
-local function VisualizePivot(model)
-	local pivot = model:GetPivot()
-
-	for i, dir in ipairs({
-		{ pivot.LookVector, Color3.fromRGB(0, 255, 0), "Front" },
-		{ -pivot.LookVector, Color3.fromRGB(255, 0, 0), "Back" },
-		{ pivot.RightVector, Color3.fromRGB(255, 255, 0), "Right" },
-		{ -pivot.RightVector, Color3.fromRGB(0, 0, 255), "Left" },
-	}) do
-		local part = Instance.new("Part")
-		part.Size = Vector3.new(1, 1, 1)
-		part.Anchored = true
-		part.CanCollide = false
-		part.Color = dir[2]
-		part.Name = dir[3]
-		part.Position = pivot.Position + dir[1] * 5
-		part.Parent = workspace
-	end
-end
-
-local function InGenerator()
-	for i, v in ipairs(game:GetService("Players").LocalPlayer.PlayerGui.TemporaryUI:GetChildren()) do
-		if string.sub(v.Name, 1, 3) == "Gen" then
-			return true
-		end
-	end
-	return false
-end
-
-local function fireproximityprompt(prompt)
-	if prompt and prompt:IsA("ProximityPrompt") then
-		game:GetService("ReplicatedStorage").Modules.Network.RemoteEvent:FireServer("InputHoldBegin", prompt)
-		task.wait(0.1)
-		game:GetService("ReplicatedStorage").Modules.Network.RemoteEvent:FireServer("InputHoldEnd", prompt)
-	end
-end
-
-local function DoAllGenerators()
-	local currentCharacter = Players.LocalPlayer.Character
-	if not currentCharacter or not currentCharacter:FindFirstChild("HumanoidRootPart") or not currentCharacter:FindFirstChild("Humanoid") then
-		return
-	end
-	local humanoid = currentCharacter.Humanoid
-	for _, completedgen in ipairs(game.ReplicatedStorage.ObjectiveStorage:GetChildren()) do
-		local required = completedgen:GetAttribute("RequiredProgress")
-		if completedgen.Value == required then
-			SendWebhook(
-				"Generator Autofarm thing",
-				"Finished all generators, Current Balance: "
-					.. Players.LocalPlayer.PlayerData.Stats.Currency.Money.Value
-					.. "\nTime Played: "
-					.. (function()
-						local seconds = Players.LocalPlayer.PlayerData.Stats.General.TimePlayed.Value
-						local days = math.floor(seconds / (60 * 60 * 24))
-						seconds = seconds % (60 * 60 * 24)
-						local hours = math.floor(seconds / (60 * 60))
-						seconds = seconds % (60 * 60)
-						local minutes = math.floor(seconds / 60)
-						seconds = seconds % 60
-						return string.format("%02d:%02d:%02d:%02d", days, hours, minutes, seconds)
-					end)(),
-				0x00FF00,
-				ProfilePicture,
-				".gg/fartsaken | <3"
-			)
-			task.wait(1)
-			teleportToRandomServer()
-			return
-		else
-			for _, gen in ipairs(workspace.Map.Ingame:WaitForChild("Map"):GetChildren()) do
-				if gen.Name == "Generator" and gen.Progress.Value < 100 then
-					local goalPos = gen:WaitForChild("Positions").Right.Position
-					humanoid:MoveTo(goalPos)
-					humanoid.MoveToFinished:Wait()
-					local prompt = gen.Main:FindFirstChild("Prompt")
-					if prompt then
-						prompt.HoldDuration = 0
-						prompt.RequiresLineOfSight = false
-						prompt.MaxActivationDistance = 99999
-						task.wait(0.1)
-						fireproximityprompt(prompt)
-						task.wait(0.1)
-						while gen.Progress.Value < 100 do
-							fireproximityprompt(prompt)
-							gen.Remotes.RE:FireServer()
-							task.wait(GenTime)
-						end
-					end
-				end
-			end
-		end
-	end
-	SendWebhook(
-		"Generator Autofarm thing",
-		"Finished all generators, Current Balance: "
-			.. Players.LocalPlayer.PlayerData.Stats.Currency.Money.Value
-			.. "\nTime Played: "
-			.. (function()
-				local seconds = Players.LocalPlayer.PlayerData.Stats.General.TimePlayed.Value
-				local days = math.floor(seconds / (60 * 60 * 24))
-				seconds = seconds % (60 * 60 * 24)
-				local hours = math.floor(seconds / (60 * 60))
-				seconds = seconds % (60 * 60)
-				local minutes = math.floor(seconds / 60)
-				seconds = seconds % 60
-				return string.format("%02d:%02d:%02d:%02d", days, hours, minutes, seconds)
-			end)(),
-		0x00FF00,
-		ProfilePicture,
-		".gg/fartsaken | <3"
-	)
-	task.wait(1)
-	teleportToRandomServer()
-end
 
 local isInGame = false
 
@@ -529,6 +378,14 @@ task.spawn(function()
 	TeleportService:Teleport(game.PlaceId)
 end)
 
+local function fireproximityprompt(prompt)
+	if prompt and prompt:IsA("ProximityPrompt") then
+		game:GetService("ReplicatedStorage").Modules.Network.RemoteEvent:FireServer("InputHoldBegin", prompt)
+		task.wait(0.1)
+		game:GetService("ReplicatedStorage").Modules.Network.RemoteEvent:FireServer("InputHoldEnd", prompt)
+	end
+end
+
 while true do
 	if isInGame then
 		local currentCharacter
@@ -537,7 +394,7 @@ while true do
 				currentCharacter = surv
 			end
 		end
-		if currentCharacter and currentCharacter:FindFirstChild("Humanoid") then
+		if currentCharacter and currentCharacter:FindFirstChild("Humanoid") and currentCharacter:FindFirstChild("HumanoidRootPart") then
 			task.spawn(function()
 				while true do
 					if currentCharacter.Humanoid.Health <= 0 then
@@ -549,8 +406,64 @@ while true do
 					task.wait(0.5)
 				end
 			end)
+
+			for _, completedgen in ipairs(game.ReplicatedStorage.ObjectiveStorage:GetChildren()) do
+				local required = completedgen:GetAttribute("RequiredProgress")
+				if completedgen.Value == required then
+					SendWebhook(
+						"Generator Autofarm thing",
+						"Finished all generators, Current Balance: "
+							.. Players.LocalPlayer.PlayerData.Stats.Currency.Money.Value
+							.. "\nTime Played: "
+							.. (function()
+								local seconds = Players.LocalPlayer.PlayerData.Stats.General.TimePlayed.Value
+								local days = math.floor(seconds / (60 * 60 * 24))
+								seconds = seconds % (60 * 60 * 24)
+								local hours = math.floor(seconds / (60 * 60))
+								seconds = seconds % (60 * 60)
+								local minutes = math.floor(seconds / 60)
+								seconds = seconds % 60
+								return string.format("%02d:%02d:%02d:%02d", days, hours, minutes, seconds)
+							end)(),
+						0x00FF00,
+						ProfilePicture,
+						".gg/fartsaken | <3"
+					)
+					task.wait(1)
+					teleportToRandomServer()
+					break
+				else
+					for _, gen in ipairs(workspace.Map.Ingame:WaitForChild("Map"):GetChildren()) do
+						if gen.Name == "Generator" and gen.Progress.Value < 100 then
+							local goalPos = gen:WaitForChild("Positions").Right.Position
+							currentCharacter.HumanoidRootPart.CFrame = CFrame.new(goalPos + Vector3.new(0, 3, 0))
+							task.wait(0.1)
+							local prompt = gen.Main:FindFirstChild("Prompt")
+							if prompt then
+								prompt.HoldDuration = 0
+								prompt.RequiresLineOfSight = false
+								prompt.MaxActivationDistance = 99999
+								task.wait(0.1)
+								fireproximityprompt(prompt)
+								task.wait(0.1)
+								busy = true
+								local counter = 0
+								while gen.Progress.Value < 100 do
+									fireproximityprompt(prompt)
+									gen.Remotes.RE:FireServer()
+									task.wait(GenTime)
+									counter = counter + 1
+									if counter >= 10 or not isInGame then
+										break
+									end
+								end
+								busy = false
+							end
+						end
+					end
+				end
+			end
 		end
-		DoAllGenerators()
 	end
 	task.wait(0.1)
 end
