@@ -122,7 +122,7 @@ task.spawn(function()
         if isInGame then
             local barText = Players.LocalPlayer.PlayerGui.TemporaryUI.PlayerInfo.Bars.Stamina.Amount.Text
             stamina = tonumber(string.split(barText,"/")[1])
-            if not isSprinting and stamina>=70 and not busy then
+            if not isSprinting and stamina>=40 and not busy then
                 VIM:SendKeyEvent(true, Enum.KeyCode.LeftShift, false, game)
             end
         end
