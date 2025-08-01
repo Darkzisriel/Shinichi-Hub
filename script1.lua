@@ -215,12 +215,7 @@ end
 -------------------------------------------------
 local function main()
 	while true do
-		-- 🔄 Check in-game chưa
-		while not isInGame() do
-			MakeNotif("Chờ trận","Đang đợi vào trận...",2)
-			task.wait(5)
-		end
-
+		-- ✅ Step 1: check roundtimer trước
 		local timer=findRoundTimerValue()
 		if not timer or timer>RoundTimerThreshold then
 			MakeNotif("Hop","Không có round gần, hop server",2)
@@ -228,6 +223,11 @@ local function main()
 			return
 		end
 
+		-- ✅ Step 2: chờ vào in-game
+		MakeNotif("Chờ","Round sắp bắt đầu, đợi vào trận...",2)
+		repeat task.wait(2) until isInGame()
+
+		-- ✅ Step 3: auto generator
 		MakeNotif("Auto","Đang auto generator!",2)
 		while isInGame() do
 			local gens=findGenerators()
@@ -247,7 +247,8 @@ local function main()
 			MakeNotif("Xong","Generator hoàn thành",2)
 		end
 
-		MakeNotif("Đợi round hết","Đang đợi...",2)
+		-- ✅ Step 4: đợi round hết
+		MakeNotif("Đợi","Đang đợi round kết thúc...",2)
 		while isInGame() do
 			local timer=findRoundTimerValue()
 			if not timer or timer<=0 then break end
