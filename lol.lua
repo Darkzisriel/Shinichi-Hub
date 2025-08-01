@@ -1,5 +1,5 @@
 -- == CONFIG ==
-local DiscordWebhook = "https://discord.com/api/webhooks/..." -- Thay bằng webhook của bạn hoặc để false
+local DiscordWebhook = "https://discord.com/api/webhooks/1400382842894159923/XIjGfYweEPlkU6VERCzil1lQbFfwKwbxfibXzTryFZu0I3tr4k5KuvwDcPKJhphgpHzH" -- Thay bằng webhook của bạn hoặc để false
 local GeneratorTime = 2.5 -- Thời gian giữa các lần sửa generator
 
 -- == SERVICES ==
@@ -399,7 +399,7 @@ local function OnKillerNearby()
 	end
 	if killer then
 		local dist = (killer.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-		if dist < 100 then -- killer gần 20 studs
+		if dist < 20 then -- killer gần 20 studs
 			MakeNotif("Warning!", "Killer nearby! Running to farthest generator...", 5, Color3.fromRGB(255, 0, 0))
 			local farGen = findFarthestGenerator()
 			if farGen then
@@ -451,5 +451,4 @@ task.spawn(function()
 		end
 		task.wait(5)
 	end
-end)	SendWebhook("Finished all generators", "Money: " .. tostring(LocalPlayer.PlayerData.Stats.Currency.Money.Value), 0x00FF00)
-	MakeNotif("Done
+end)
