@@ -1,295 +1,315 @@
 if getgenv and tonumber(getgenv().LoadTime) then
 	task.wait(tonumber(getgenv().LoadTime))
 else
-	repeat task.wait() until game:IsLoaded()
+	repeat
+		task.wait()
+	until game:IsLoaded()
 end
 
-local VIM = game:GetService("VirtualInputManager")
+local VIMVIM = game:GetService("VirtualInputManager")
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 
 local DCWebhook = (getgenv and getgenv().DiscordWebhook) or false
 local GenTime = tonumber(getgenv and getgenv().GeneratorTime) or 2.5
-local PlaceId = game.PlaceId
 
+local Nnnnnnotificvationui
+local AliveNotificaiotna = {}
 local ProfilePicture = ""
-local Notifications = {}
 
-local LocalPlayer = Players.LocalPlayer
-
--- Notification UI (giống đoạn bạn gửi)
-local NotificationGui = nil
-local AliveNotifications = {}
+if DCWebhook == "" then
+	DCWebhook = false
+end
 
 local function CreateNotificationUI()
-	if NotificationGui then return NotificationGui end
-	NotificationGui = Instance.new("ScreenGui")
-	NotificationGui.Name = "NotificationUI"
-	NotificationGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	NotificationGui.Parent = game:GetService("CoreGui")
-	return NotificationGui
+	if Nnnnnnotificvationui then
+		return Nnnnnnotificvationui
+	end
+	Nnnnnnotificvationui = Instance.new("ScreenGui")
+	Nnnnnnotificvationui.Name = "NotificationUI"
+	Nnnnnnotificvationui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	Nnnnnnotificvationui.Parent = game:GetService("CoreGui")
+	return Nnnnnnotificvationui
 end
 
 local function MakeNotif(title, message, duration, color)
+	local ui = CreateNotificationUI()
+	title = title or "Notification"
+	message = message or ""
 	duration = duration or 5
 	color = color or Color3.fromRGB(255, 200, 0)
-	local ui = CreateNotificationUI()
-	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(0, 250, 0, 80)
-	frame.Position = UDim2.new(1, 50, 1, 10)
-	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-	frame.BorderSizePixel = 0
-	frame.Parent = ui
-	Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
+	local notification = Instance.new("Frame")
+	notification.Name = "Notification"
+	notification.Size = UDim2.new(0, 250, 0, 80)
+	notification.Position = UDim2.new(1, 50, 1, 10)
+	notification.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	notification.BorderSizePixel = 0
+	notification.Parent = ui
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = notification
 
-	local titleLabel = Instance.new("TextLabel", frame)
-	titleLabel.Text = title or "Notification"
-	titleLabel.Font = Enum.Font.SourceSansBold
-	titleLabel.TextSize = 18
-	titleLabel.TextColor3 = color
-	titleLabel.BackgroundTransparency = 1
-	titleLabel.Size = UDim2.new(1,-25,0,25)
-	titleLabel.Position = UDim2.new(0,15,0,5)
-	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	local icon = Instance.new("ImageLabel")
+	icon.Name = "Icon"
+	icon.Size = UDim2.new(0, 24, 0, 24)
+	icon.Position = UDim2.new(0, 5, 0, 5)
+	icon.BackgroundTransparency = 1
+	icon.Image = ProfilePicture or "rbxasset://textures/ui/GuiImagePlaceholder.png"
+	icon.Parent = notification
 
-	local messageLabel = Instance.new("TextLabel", frame)
-	messageLabel.Text = message or ""
+	local SIGMABERFIOENEW = Instance.new("TextLabel")
+	SIGMABERFIOENEW.Name = "Title"
+	SIGMABERFIOENEW.Size = UDim2.new(1, -35, 0, 25)
+	SIGMABERFIOENEW.Position = UDim2.new(0, 34, 0, 5)
+	SIGMABERFIOENEW.Font = Enum.Font.SourceSansBold
+	SIGMABERFIOENEW.Text = title
+	SIGMABERFIOENEW.TextSize = 18
+	SIGMABERFIOENEW.TextColor3 = color
+	SIGMABERFIOENEW.BackgroundTransparency = 1
+	SIGMABERFIOENEW.TextXAlignment = Enum.TextXAlignment.Left
+	SIGMABERFIOENEW.Parent = notification
+
+	local messageLabel = Instance.new("TextLabel")
+	messageLabel.Name = "Message"
+	messageLabel.Size = UDim2.new(1, -25, 0, 50)
+	messageLabel.Position = UDim2.new(0, 15, 0, 30)
 	messageLabel.Font = Enum.Font.SourceSans
+	messageLabel.Text = message
 	messageLabel.TextSize = 16
-	messageLabel.TextColor3 = Color3.fromRGB(255,255,255)
+	messageLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 	messageLabel.BackgroundTransparency = 1
-	messageLabel.Size = UDim2.new(1,-25,0,50)
-	messageLabel.Position = UDim2.new(0,15,0,30)
-	messageLabel.TextWrapped = true
 	messageLabel.TextXAlignment = Enum.TextXAlignment.Left
+	messageLabel.TextWrapped = true
+	messageLabel.Parent = notification
 
-	local colorBar = Instance.new("Frame", frame)
-	colorBar.Size = UDim2.new(0,5,1,0)
+	local colorBar = Instance.new("Frame")
+	colorBar.Name = "ColorBar"
+	colorBar.Size = UDim2.new(0, 5, 1, 0)
+	colorBar.Position = UDim2.new(0, 0, 0, 0)
 	colorBar.BackgroundColor3 = color
 	colorBar.BorderSizePixel = 0
+	colorBar.Parent = notification
+	local barCorner = Instance.new("UICorner")
+	barCorner.CornerRadius = UDim.new(0, 8)
+	barCorner.Parent = colorBar
 
-	-- Vị trí notification stack
-	local offset = 0
-	for _, notif in ipairs(AliveNotifications) do
+	local offsit = 0
+	for _, notif in pairs(AliveNotificaiotna) do
 		if notif.Instance and notif.Instance.Parent then
-			offset = offset + notif.Instance.Size.Y.Offset + 10
+			offsit = offsit + notif.Instance.Size.Y.Offset + 10
 		end
 	end
-
-	local goalPos = UDim2.new(1,-270,1,-90 - offset)
-	table.insert(AliveNotifications, {Instance=frame, ExpireTime=os.time() + duration})
-	TweenService:Create(frame,TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = goalPos}):Play()
-
+	local tagit = UDim2.new(1, -270, 1, -90 - offsit)
+	table.insert(AliveNotificaiotna, { Instance = notification, ExpireTime = os.time() + duration })
+	local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+	game:GetService("TweenService"):Create(notification, tweenInfo, { Position = tagit }):Play()
 	task.spawn(function()
 		task.wait(duration)
-		local tweenOut = TweenService:Create(frame,TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {Position = UDim2.new(1, 50, frame.Position.Y.Scale, frame.Position.Y.Offset)})
+		local tweenOut = game:GetService("TweenService"):Create(
+			notification,
+			TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.In),
+			{ Position = UDim2.new(1, 50, notification.Position.Y.Scale, notification.Position.Y.Offset) }
+		)
 		tweenOut:Play()
 		tweenOut.Completed:Wait()
-		for i,v in ipairs(AliveNotifications) do
-			if v.Instance == frame then
-				table.remove(AliveNotifications,i)
+		for i, notif in pairs(AliveNotificaiotna) do
+			if notif.Instance == notification then
+				table.remove(AliveNotificaiotna, i)
 				break
 			end
 		end
-		frame:Destroy()
-		-- reposition
-		local newOffset = 0
-		for _, notif in ipairs(AliveNotifications) do
+		notification:Destroy()
+		task.wait()
+		local currentOffset = 0
+		for _, notif in pairs(AliveNotificaiotna) do
 			if notif.Instance and notif.Instance.Parent then
-				TweenService:Create(notif.Instance,TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(1,-270,1,-90 - newOffset)}):Play()
-				newOffset = newOffset + notif.Instance.Size.Y.Offset + 10
+				game:GetService("TweenService"):Create(
+					notif.Instance,
+					TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+					{ Position = UDim2.new(1, -270, 1, -90 - currentOffset) }
+				):Play()
+				currentOffset = currentOffset + notif.Instance.Size.Y.Offset + 10
 			end
 		end
 	end)
+	return notification
 end
 
--- Discord webhook lấy avatar
-local function GetProfilePicture()
-	local request = request or http_request or syn.request
-	if not request then return end
-	local success, response = pcall(function()
-		return request({Url="https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds="..LocalPlayer.UserId.."&size=180x180&format=png",Method="GET"})
-	end)
-	if success and response and response.Body then
-		local found = response.Body:match('https://[^\"]+')
-		ProfilePicture = found or ""
-	end
-end
 
-local function SendWebhook(title, description, color)
-	if not DCWebhook then return end
-	local request = request or http_request or syn.request
-	if not request then return end
-	pcall(function()
-		request({
-			Url = DCWebhook,
-			Method = "POST",
-			Headers = {["Content-Type"]="application/json"},
-			Body = HttpService:JSONEncode({
-				username = LocalPlayer.DisplayName,
-				avatar_url = ProfilePicture,
-				embeds = {{title=title,description=description,color=color}}
-			})
-		})
-	end)
-end
-
-if DCWebhook then GetProfilePicture() end
-
--- Kiểm tra người chơi có trong game chưa
-local function isInGame()
-	local specFolder = workspace:FindFirstChild("Players") and workspace.Players:FindFirstChild("Spectating")
-	if not specFolder then return false end
-	return not specFolder:FindFirstChild(LocalPlayer.Name)
-end
-
-local function findGenerators()
-	local f=workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Ingame") and workspace.Map.Ingame:FindFirstChild("Map")
-	local gens={}
-	if f then
-		for _,g in ipairs(f:GetChildren()) do
-			if g.Name=="Generator" and g.Progress.Value<100 then table.insert(gens,g) end
-		end
-	end
-	return gens
-end
-
-local function teleportToGenerator(gen)
-	local hrp=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-	if hrp and gen then
-		hrp.CFrame = CFrame.new(gen:GetPivot().Position+Vector3.new(0,5,0))
-	end
-end
-
-local function findNearestKiller()
-	local hrp=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-	if not hrp then return nil,math.huge end
-	local nearest,dist=nil,math.huge
-	for _,k in ipairs(workspace.Players.Killers:GetChildren()) do
-		local khrp=k:FindFirstChild("HumanoidRootPart")
-		if khrp then
-			local d=(hrp.Position - khrp.Position).Magnitude
-			if d<dist then dist=d; nearest=k end
-		end
-	end
-	return nearest,dist
-end
-
-local function teleportToRandomServer()
-	local req = request or http_request or syn.request
-	if not req then
-		MakeNotif("Error", "No request function available", 5, Color3.fromRGB(255, 0, 0))
-		return
-	end
-	local url = ("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100"):format(PlaceId)
-	local s,res=pcall(function() return req({Url=url,Method="GET"}) end)
-	if s and res and res.Body then
-		local data=HttpService:JSONDecode(res.Body)
-		if data and data.data and #data.data>0 then
-			local candidates={}
-			for _,sv in ipairs(data.data) do
-				if sv.playing<(sv.maxPlayers*0.4) then table.insert(candidates,sv) end
-			end
-			if #candidates==0 then candidates=data.data end
-			local chosen=candidates[math.random(1,#candidates)]
-			if chosen and chosen.id then
-				MakeNotif("Hop Server","Đến server mới",2)
-				if DCWebhook then SendWebhook("Hop Server","Teleported to "..chosen.id,0x00ff00) end
-				TeleportService:TeleportToPlaceInstance(PlaceId,chosen.id)
-			end
-		end
-	end
-end
-
-local function main()
-	while true do
-		-- Check round timer lúc vào script
-		local timerValue = nil
-		pcall(function()
-			local timerText = LocalPlayer.PlayerGui:WaitForChild("RoundTimer").Main.Time.ContentText
-			local m,s = timerText:match("(%d+):(%d+)")
-			if m and s then
-				timerValue = tonumber(m)*60 + tonumber(s)
-			end
-		end)
-		if not timerValue then
-			MakeNotif("Hop", "Không đọc được RoundTimer, hop server", 3, Color3.fromRGB(255, 0, 0))
-			teleportToRandomServer()
-			return
-		end
-		MakeNotif("RoundTimer", "Round còn " .. timerValue .. " giây.", 3, Color3.fromRGB(115, 194, 89))
-		if timerValue > 90 then
-			MakeNotif("Hop", "Round còn dài (>90s), hop server", 3, Color3.fromRGB(255, 0, 0))
-			teleportToRandomServer()
-			return
-		end
-
-		-- Đợi vào game
-		MakeNotif("Chờ", "Đợi vào trận...", 3, Color3.fromRGB(255, 255, 0))
-		repeat task.wait(1) until isInGame()
-
-		-- Auto làm hết tất cả generator
-		MakeNotif("Auto", "Bắt đầu auto generator", 3, Color3.fromRGB(0, 255, 0))
-		local gens = findGenerators()
-		for _, gen in ipairs(gens) do
-			teleportToGenerator(gen)
-			local prompt = gen:FindFirstChild("Main") and gen.Main:FindFirstChild("Prompt")
-			while gen.Progress.Value < 100 and isInGame() do
-				local _, dist = findNearestKiller()
-				if dist <= 60 then
-					MakeNotif("Danger", "Killer gần!", 3, Color3.fromRGB(255, 0, 0))
-					-- Di chuyển ra xa generator gần killer nhất (có thể là generator cuối)
-					local farGen = gens[#gens]
-					if farGen then teleportToGenerator(farGen) end
-				end
-				if prompt then fireproximityprompt(prompt) end
-				task.wait(GenTime)
-			end
-			MakeNotif("Xong", "Generator hoàn thành", 3, Color3.fromRGB(0, 255, 0))
-		end
-
-		-- Sau khi hoàn thành hết generator, đợi round kết thúc
-		MakeNotif("Đợi", "Hoàn thành generator, đợi round kết thúc...", 3, Color3.fromRGB(255, 255, 0))
-		while isInGame() do
-			local timerNow = nil
-			pcall(function()
-				local timerText = LocalPlayer.PlayerGui:WaitForChild("RoundTimer").Main.Time.ContentText
-				local m,s = timerText:match("(%d+):(%d+)")
-				if m and s then
-					timerNow = tonumber(m)*60 + tonumber(s)
-				end
-			end)
-			if not timerNow or timerNow <= 0 then break end
-
-			local _, dist = findNearestKiller()
-			if dist <= 60 then
-				local gens2 = findGenerators()
-				local farGen = gens2[#gens2]
-				if farGen then teleportToGenerator(farGen) end
-			end
-			task.wait(2)
-		end
-
-		MakeNotif("Hop", "Round kết thúc, hop server", 3, Color3.fromRGB(255, 0, 0))
-		teleportToRandomServer()
-		return
-	end
-end
-
--- Giám sát chết để hop server
 task.spawn(function()
 	while task.wait(1) do
-		local char = LocalPlayer.Character
-		if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health <= 0 then
-			MakeNotif("Chết", "Bạn đã chết!", 3, Color3.fromRGB(255, 0, 0))
-			if DCWebhook then SendWebhook("Bạn chết", "Đang hop server", 0xFF0000) end
-			teleportToRandomServer()
-			break
+		local currentTime = os.time()
+		local reposition = false
+		for i = #AliveNotificaiotna, 1, -1 do
+			local notif = AliveNotificaiotna[i]
+			if currentTime > notif.ExpireTime and notif.Instance and notif.Instance.Parent then
+				notif.Instance:Destroy()
+				table.remove(AliveNotificaiotna, i)
+				reposition = true
+			end
+		end
+		if reposition then
+			local currentOffset = 0
+			for _, notif in pairs(AliveNotificaiotna) do
+				if notif.Instance and notif.Instance.Parent then
+					notif.Instance.Position = UDim2.new(1, -270, 1, -90 - currentOffset)
+					currentOffset = currentOffset + notif.Instance.Size.Y.Offset + 10
+				end
+			end
 		end
 	end
 end)
 
-main()
+MakeNotif("Strawberry Cat Hub", "Script Loaded!", 5, Color3.fromRGB(115, 194, 89))
+
+local function GetProfilePicture()
+	local PlayerID = Players.LocalPlayer.UserId
+	local request = request or http_request or syn.request
+	local response = request({
+		Url = "https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=" .. PlayerID .. "&size=180x180&format=png",
+		Method = "GET",
+		Headers = { ["User-Agent"] = "Mozilla/5.0" },
+	})
+	local urlStart, urlEnd = string.find(response.Body, "https://[%w-_%.%?%.:/%+=&]+")
+	if urlStart and urlEnd then
+		ProfilePicture = string.sub(response.Body, urlStart, urlEnd)
+	else
+		ProfilePicture = "https://cdn.sussy.dev/bleh.jpg"
+	end
+end
+
+if DCWebhook then
+	GetProfilePicture()
+end
+
+local function SendWebhook(Title, Description, Color, ProfilePicture, Footer)
+	if not DCWebhook then return end
+	local request = request or http_request or syn.request
+	pcall(function()
+		request({
+			Url = DCWebhook,
+			Method = "POST",
+			Headers = { ["Content-Type"] = "application/json" },
+			Body = HttpService:JSONEncode({
+				username = Players.LocalPlayer.DisplayName,
+				avatar_url = ProfilePicture,
+				embeds = { { title = Title, description = Description, color = Color, footer = { text = Footer } } },
+			}),
+		})
+	end)
+	MakeNotif("Webhook", "Sent: " .. Title .. "\n" .. Description, 5, Color3.fromRGB(115, 194, 89))
+end
+
+local function VisualizePivot(model)
+	local pivot = model:GetPivot()
+	for _, dir in ipairs({
+		{ pivot.LookVector, Color3.fromRGB(0, 255, 0) },
+		{ -pivot.LookVector, Color3.fromRGB(255, 0, 0) },
+		{ pivot.RightVector, Color3.fromRGB(255, 255, 0) },
+		{ -pivot.RightVector, Color3.fromRGB(0, 0, 255) },
+	}) do
+		local part = Instance.new("Part")
+		part.Size = Vector3.new(1, 1, 1)
+		part.Anchored = true
+		part.CanCollide = false
+		part.Color = dir[2]
+		part.Position = pivot.Position + dir[1] * 5
+		part.Parent = workspace
+	end
+end
+
+local function TeleportToGenerator(generator)
+	if not generator or not generator.Parent then return false end
+	if not Players.LocalPlayer.Character or not Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return false end
+	local rootPart = Players.LocalPlayer.Character.HumanoidRootPart
+	local targetPosition = generator:GetPivot().Position + generator:GetPivot().LookVector * 3
+	VisualizePivot(generator)
+	rootPart.CFrame = CFrame.new(targetPosition)
+	task.wait(0.3)
+	if (rootPart.Position - targetPosition).Magnitude <= 5 then
+		return true
+	else
+		return false
+	end
+end
+
+local function findGenerators()
+	local folder = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Ingame")
+	local map = folder and folder:FindFirstChild("Map")
+	local generators = {}
+	if map then
+		for _, g in ipairs(map:GetChildren()) do
+			if g.Name == "Generator" and g.Progress.Value < 100 then
+				table.insert(generators, g)
+			end
+		end
+	end
+	table.sort(generators, function(a, b)
+		local p = Players.LocalPlayer
+		local c = p.Character
+		if not c or not c:FindFirstChild("HumanoidRootPart") then return false end
+		return (a:GetPivot().Position - c.HumanoidRootPart.Position).Magnitude < (b:GetPivot().Position - c.HumanoidRootPart.Position).Magnitude
+	end)
+	return generators
+end
+
+local function InGenerator()
+	for _, v in ipairs(Players.LocalPlayer.PlayerGui.TemporaryUI:GetChildren()) do
+		if string.sub(v.Name,1,3)=="Gen" then
+			return false
+		end
+	end
+	return true
+end
+
+local function DoAllGenerators()
+	for _, g in ipairs(findGenerators()) do
+		local ok = false
+		for i=1,3 do
+			if (Players.LocalPlayer.Character:GetPivot().Position - g:GetPivot().Position).Magnitude>500 then break end
+			ok = TeleportToGenerator(g)
+			if ok then break else task.wait(1) end
+		end
+		if ok then
+			task.wait(0.5)
+			local prompt = g:FindFirstChild("Main") and g.Main:FindFirstChild("Prompt")
+			if prompt then
+				fireproximityprompt(prompt)
+				task.wait(0.5)
+				if not InGenerator() then
+					local positions={g:GetPivot().Position-g:GetPivot().RightVector*3,g:GetPivot().Position+g:GetPivot().RightVector*3}
+					for _,pos in ipairs(positions) do
+						Players.LocalPlayer.Character.HumanoidRootPart.CFrame=CFrame.new(pos)
+						task.wait(0.25)
+						fireproximityprompt(prompt)
+						if InGenerator() then break end
+					end
+				end
+			end
+			for i=1,6 do
+				if g.Progress.Value<100 and g:FindFirstChild("Remotes") and g.Remotes:FindFirstChild("RE") then
+					g.Remotes.RE:FireServer()
+				end
+				if i<6 and g.Progress.Value<100 then task.wait(GenTime) end
+			end
+		else
+			return
+		end
+	end
+	SendWebhook("Generator Autofarm","Finished all generators.",0x00FF00,ProfilePicture,".gg/CEyArUEnNW | By Darkz X Shinichi")
+	task.wait(1)
+end
+
+local function AmIInGameYet()
+	workspace.Players.Survivors.ChildAdded:Connect(function(child)
+		task.wait(1)
+		if child==Players.LocalPlayer.Character then
+			task.wait(4)
+			DoAllGenerators()
+		end
+	end)
+end
+
+AmIInGameYet()
