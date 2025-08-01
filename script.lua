@@ -1,225 +1,246 @@
--- CONFIG
-local config = {
-    DiscordWebhook = "https://discord.com/api/webhooks/1400382842894159923/XIjGfYweEPlkU6VERCzil1lQbFfwKwbxfibXzTryFZu0I3tr4k5KuvwDcPKJhphgpHzH",
-    GeneratorTime = 2.5,
-    LoadTime = 2,
-}
-
-if tonumber(config.LoadTime) then
-    task.wait(tonumber(config.LoadTime))
+if getgenv and tonumber(getgenv().LoadTime) then
+	task.wait(tonumber(getgenv().LoadTime))
 else
-    repeat task.wait() until game:IsLoaded()
+	repeat task.wait() until game:IsLoaded()
 end
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local PathfindingService = game:GetService("PathfindingService")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
 local VIM = game:GetService("VirtualInputManager")
-local TweenService = game:GetService("TweenService")
+
+local DCWebhook = (getgenv and getgenv().DiscordWebhook) or false
+local GenTime = tonumber(getgenv and getgenv().GeneratorTime) or 2.5
+
 local player = Players.LocalPlayer
-local Humanoid, RootPart
-
-local ActiveInfiniteStamina = true
+local currentCharacter = nil
+local isInGame = false
+local busy = false
+local fail_attempt = 0
 local ProfilePicture = ""
-local AliveNotifications = {}
-local DCWebhook = config.DiscordWebhook
-local GenTime = config.GeneratorTime
-local InGame = false
+local ActiveInfiniteStamina = true
 
--- 🛠 UI notification
-local NotificationUI = Instance.new("ScreenGui", game.CoreGui)
-NotificationUI.Name = "NotificationUI"
+-- 🛡️ Infinite stamina
+task.spawn(function()
+	while ActiveInfiniteStamina do
+		pcall(function()
+			local m = require(game.ReplicatedStorage.Systems.Character.Game.Sprinting)
+			m.StaminaLossDisabled = true
+			m.Stamina = 9999999
+		end)
+		task.wait(0.1)
+	end
+end)
 
-local function MakeNotif(title, message, duration, color)
-    duration = duration or 5
-    color = color or Color3.fromRGB(255, 200, 0)
-    local notif = Instance.new("Frame")
-    notif.Size = UDim2.new(0, 250, 0, 80)
-    notif.Position = UDim2.new(1, 50, 1, 10)
-    notif.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    notif.Parent = NotificationUI
-    Instance.new("UICorner", notif).CornerRadius = UDim.new(0,8)
+-- 👀 check isInGame (dựa vào spectate list)
+task.spawn(function()
+	while true do
+		local spectators = {}
+		if workspace:FindFirstChild("Players") and workspace.Players:FindFirstChild("Spectating") then
+			for _, p in ipairs(workspace.Players.Spectating:GetChildren()) do
+				table.insert(spectators, p.Name)
+			end
+		end
+		isInGame = not table.find(spectators, player.Name)
+		task.wait(1)
+	end
+end)
 
-    local titleLabel = Instance.new("TextLabel", notif)
-    titleLabel.Size = UDim2.new(1,-25,0,25)
-    titleLabel.Position = UDim2.new(0,15,0,5)
-    titleLabel.Text = title
-    titleLabel.TextColor3 = color
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Font = Enum.Font.SourceSansBold
-    titleLabel.TextSize = 18
-    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-    local msgLabel = Instance.new("TextLabel", notif)
-    msgLabel.Size = UDim2.new(1,-25,0,50)
-    msgLabel.Position = UDim2.new(0,15,0,30)
-    msgLabel.Text = message
-    msgLabel.TextColor3 = Color3.new(1,1,1)
-    msgLabel.BackgroundTransparency = 1
-    msgLabel.Font = Enum.Font.SourceSans
-    msgLabel.TextSize = 16
-    msgLabel.TextXAlignment = Enum.TextXAlignment.Left
-    msgLabel.TextWrapped = true
-
-    table.insert(AliveNotifications, {Instance=notif,Expire=os.time()+duration})
-    TweenService:Create(notif, TweenInfo.new(0.5), {Position=UDim2.new(1,-270,1,-90-#AliveNotifications*90)}):Play()
-
-    task.spawn(function()
-        task.wait(duration)
-        TweenService:Create(notif, TweenInfo.new(0.5), {Position=UDim2.new(1,50,notif.Position.Y.Scale,notif.Position.Y.Offset)}):Play()
-        task.wait(0.5)
-        notif:Destroy()
-    end)
+-- 🖼️ Get avatar
+local function GetProfilePicture()
+	local req = request or http_request or syn.request
+	if req then
+		local res = req({
+			Url = "https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds="..player.UserId.."&size=180x180&format=png",
+			Method="GET"
+		})
+		if res and res.Body then
+			local data = HttpService:JSONDecode(res.Body)
+			if data and data.data and data.data[1] then
+				ProfilePicture = data.data[1].imageUrl
+			end
+		end
+	end
 end
+if DCWebhook then GetProfilePicture() end
 
--- 🌱 Infinite stamina
-task.spawn(function()
-    while ActiveInfiniteStamina do
-        pcall(function()
-            local m=require(game.ReplicatedStorage.Systems.Character.Game.Sprinting)
-            m.StaminaLossDisabled=true
-            m.Stamina=999999
-        end)
-        task.wait(0.1)
-    end
-end)
-
--- 📨 Get avatar
-task.spawn(function()
-    local req = request or http_request or syn.request
-    if req then
-        local r=req({Url="https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds="..player.UserId.."&size=180x180&format=png",Method="GET"})
-        if r and r.Body then
-            local data=HttpService:JSONDecode(r.Body)
-            if data and data.data and data.data[1] then
-                ProfilePicture=data.data[1].imageUrl
-            end
-        end
-    end
-end)
-
--- 📨 Send webhook
+-- 📢 Send webhook
 local function SendWebhook(title,desc,color)
-    local req = request or http_request or syn.request
-    if DCWebhook and req then
-        req({
-            Url=DCWebhook, Method="POST",
-            Headers={["Content-Type"]="application/json"},
-            Body=HttpService:JSONEncode({
-                username=player.DisplayName, avatar_url=ProfilePicture,
-                embeds={{title=title,description=desc,color=color}}
-            })
-        })
-    end
+	if not DCWebhook then return end
+	local req = request or http_request or syn.request
+	if req then
+		req({
+			Url=DCWebhook,
+			Method="POST",
+			Headers={["Content-Type"]="application/json"},
+			Body=HttpService:JSONEncode({
+				username=player.DisplayName,
+				avatar_url=ProfilePicture,
+				embeds={{title=title,description=desc,color=color}}
+			})
+		})
+	end
 end
 
 -- 🔍 Find generators
 local function findGenerators()
-    local gens={}
-    local folder=workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Ingame")
-    if folder and folder:FindFirstChild("Map") then
-        for _,g in ipairs(folder.Map:GetChildren()) do
-            if g.Name=="Generator" and g.Progress.Value<100 then
-                table.insert(gens,g)
-            end
-        end
-    end
-    table.sort(gens,function(a,b)
-        return (a:GetPivot().Position - RootPart.Position).Magnitude < (b:GetPivot().Position - RootPart.Position).Magnitude
-    end)
-    return gens
+	local gens={}
+	local map = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Ingame") and workspace.Map.Ingame:FindFirstChild("Map")
+	if map then
+		for _, g in ipairs(map:GetChildren()) do
+			if g.Name=="Generator" and g.Progress.Value<100 then
+				table.insert(gens,g)
+			end
+		end
+	end
+	table.sort(gens,function(a,b)
+		local c=player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if not c then return false end
+		return (a:GetPivot().Position-c.Position).Magnitude < (b:GetPivot().Position-c.Position).Magnitude
+	end)
+	return gens
 end
 
 -- 🏃 Pathfinding
-local function goToGenerator(gen)
-    local path=PathfindingService:CreatePath({AgentRadius=2.5,AgentHeight=1,AgentCanJump=false})
-    path:ComputeAsync(RootPart.Position, gen:GetPivot().Position)
-    if path.Status~=Enum.PathStatus.Success then return false end
-    for _,wp in ipairs(path:GetWaypoints()) do
-        Humanoid:MoveTo(wp.Position)
-        local t0=tick()
-        repeat task.wait() until (RootPart.Position - wp.Position).Magnitude<5 or tick()-t0>3
-        if tick()-t0>3 then return false end
-    end
-    return true
+local function PathFinding(target)
+	local hum = currentCharacter and currentCharacter:FindFirstChildOfClass("Humanoid")
+	local root = currentCharacter and currentCharacter:FindFirstChild("HumanoidRootPart")
+	if not hum or not root then return false end
+	local path=PathfindingService:CreatePath({AgentRadius=2.5,AgentHeight=1,AgentCanJump=false})
+	local ok=pcall(function() path:ComputeAsync(root.Position,target) end)
+	if not ok or path.Status~=Enum.PathStatus.Success then return false end
+	for _,wp in ipairs(path:GetWaypoints()) do
+		hum:MoveTo(wp.Position)
+		local t0=tick()
+		repeat task.wait() until (root.Position - wp.Position).Magnitude<5 or tick()-t0>4
+		if tick()-t0>4 then return false end
+	end
+	return true
+end
+
+-- 🧟 Check killer gần
+local function getClosestKiller()
+	local killers=workspace.Players:FindFirstChild("Killers") and workspace.Players.Killers:GetChildren()
+	local closest=nil
+	local minDist=math.huge
+	if killers then
+		for _,k in ipairs(killers) do
+			if k:FindFirstChild("HumanoidRootPart") and currentCharacter and currentCharacter:FindFirstChild("HumanoidRootPart") then
+				local dist=(k.HumanoidRootPart.Position - currentCharacter.HumanoidRootPart.Position).Magnitude
+				if dist<80 and dist<minDist then
+					minDist=dist
+					closest=k
+				end
+			end
+		end
+	end
+	return closest
+end
+
+-- ⚡ Khi killer gần → chạy hoặc teleport
+local function runOrTeleport(killer)
+	if not currentCharacter then return end
+	local hum=currentCharacter:FindFirstChildOfClass("Humanoid")
+	if hum and hum.Health<50 then
+		-- teleport gen xa nhất
+		local gens=findGenerators()
+		if #gens>0 then
+			local far=gens[#gens]
+			currentCharacter.HumanoidRootPart.CFrame=CFrame.new(far:GetPivot().Position+Vector3.new(0,3,0))
+			SendWebhook("Low HP!","Teleported to far generator",0xff0000)
+		end
+	else
+		-- chạy hướng ngược killer
+		local killerPos=killer.HumanoidRootPart.Position
+		local myPos=currentCharacter.HumanoidRootPart.Position
+		local dir=(myPos - killerPos).Unit*50
+		local target=myPos+dir
+		if not PathFinding(target) then
+			-- Nếu chạy fail thì teleport gen xa nhất
+			local gens=findGenerators()
+			if #gens>0 then
+				currentCharacter.HumanoidRootPart.CFrame=CFrame.new(gens[#gens]:GetPivot().Position+Vector3.new(0,3,0))
+			end
+		end
+	end
 end
 
 -- 🔀 Hop server
 local function hopServer()
-    local req = request or http_request or syn.request
-    if req then
-        local r=req({Url="https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100",Method="GET"})
-        if r and r.Body then
-            local data=HttpService:JSONDecode(r.Body)
-            for _,s in pairs(data.data) do
-                if s.playing<s.maxPlayers then
-                    TeleportService:TeleportToPlaceInstance(game.PlaceId,s.id,player)
-                    return
-                end
-            end
-        end
-    end
+	local req=request or http_request or syn.request
+	if req then
+		local res=req({Url="https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100",Method="GET"})
+		if res and res.Body then
+			local data=HttpService:JSONDecode(res.Body)
+			for _,s in pairs(data.data) do
+				if s.playing<s.maxPlayers then
+					TeleportService:TeleportToPlaceInstance(game.PlaceId,s.id,player)
+					return
+				end
+			end
+		end
+	end
 end
 
--- ⚡ Teleport farthest gen if low HP
-task.spawn(function()
-    while task.wait(1) do
-        if InGame and Humanoid and Humanoid.Health<50 then
-            local gens=findGenerators()
-            if #gens>0 then
-                player.Character.HumanoidRootPart.CFrame = CFrame.new(gens[#gens]:GetPivot().Position+Vector3.new(0,2,0))
-                MakeNotif("Escape","TP to far generator",3,Color3.fromRGB(255,0,0))
-            end
-        end
-    end
-end)
-
--- 🧰 Auto farm generators
+-- ⚙️ Main autofarm
 local function doGenerators()
-    local gens=findGenerators()
-    for _,g in ipairs(gens) do
-        if goToGenerator(g) then
-            task.wait(0.2)
-            if g:FindFirstChild("Main") and g.Main:FindFirstChild("Prompt") then
-                fireproximityprompt(g.Main.Prompt)
-            end
-            for i=1,6 do
-                if g:FindFirstChild("Remotes") and g.Remotes:FindFirstChild("RE") then
-                    g.Remotes.RE:FireServer()
-                end
-                if g.Progress.Value>=100 then break end
-                task.wait(GenTime)
-            end
-        else
-            MakeNotif("Pathfail","Hop server",3,Color3.fromRGB(255,0,0))
-            hopServer()
-            break
-        end
-    end
-    SendWebhook("Done","Finished all generators!",0x00ff00)
+	currentCharacter=nil
+	for _,c in ipairs(workspace.Players.Survivors:GetChildren()) do
+		if c:GetAttribute("Username")==player.Name then
+			currentCharacter=c break
+		end
+	end
+	if not currentCharacter then return end
+	while isInGame do
+		local killer=getClosestKiller()
+		if killer then
+			runOrTeleport(killer)
+		else
+			local gens=findGenerators()
+			if #gens==0 then
+				SendWebhook("Done","All generators fixed!",0x00ff00)
+				hopServer()
+				break
+			end
+			local g=gens[1]
+			if PathFinding(g:GetPivot().Position) then
+				task.wait(0.5)
+				if g:FindFirstChild("Main") and g.Main:FindFirstChild("Prompt") then
+					fireproximityprompt(g.Main.Prompt)
+				end
+				for i=1,6 do
+					if g.Progress.Value<100 and g:FindFirstChild("Remotes") and g.Remotes:FindFirstChild("RE") then
+						g.Remotes.RE:FireServer()
+					end
+					task.wait(GenTime)
+				end
+			else
+				hopServer()
+				break
+			end
+		end
+		task.wait(0.2)
+	end
 end
 
--- 🪦 On death → hop server
-player.CharacterAdded:Connect(function(char)
-    char:WaitForChild("Humanoid").Died:Connect(function()
-        SendWebhook("Dead","Hopping server...",0xff0000)
-        hopServer()
-    end)
+-- 🪦 chết thì hop server
+task.spawn(function()
+	while task.wait(1) do
+		if currentCharacter and currentCharacter:FindFirstChildOfClass("Humanoid") and currentCharacter.Humanoid.Health<=0 then
+			SendWebhook("Dead","Hop server...",0xff0000)
+			hopServer()
+			break
+		end
+	end
 end)
 
--- 🎮 Check if in game
-workspace.Players.Survivors.ChildAdded:Connect(function(child)
-    if child==player.Character then
-        task.wait(3)
-        Humanoid=player.Character:WaitForChild("Humanoid")
-        RootPart=player.Character:WaitForChild("HumanoidRootPart")
-        InGame=true
-        doGenerators()
-    end
+-- 🔄 loop
+task.spawn(function()
+	while task.wait(1) do
+		if isInGame then doGenerators() end
+	end
 end)
 
--- ✅ Start
-MakeNotif("AutoFarm","Loaded!",3,Color3.fromRGB(0,255,0))
-SendWebhook("AutoFarm Started","Ready!",0x00ff00)
+SendWebhook("Started","AutoFarm ready!",0x00ff00)
