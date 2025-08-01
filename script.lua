@@ -1,6 +1,6 @@
 -- ✅ Wait game load + 5s
 repeat task.wait() until game:IsLoaded()
-task.wait(9)
+task.wait(10)
 
 -- SETTINGS
 local DCWebhook = (getgenv and getgenv().DiscordWebhook) or false
