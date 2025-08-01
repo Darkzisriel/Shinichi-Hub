@@ -284,29 +284,55 @@ local function VisualizePivot(model)
 end
 
 local function teleportToRandomServer()
-	local Counter,MaxRetry,RetryDelay=0,10,10
-	local req=http_request or request or syn.request
+	local Counter, MaxRetry, RetryDelay = 0, 10, 10
+	local req = http_request or request or syn.request
 	if req then
-		local url="https://games.roblox.com/v1/games/18687417158/servers/Public?sortOrder=Asc&limit=100"
-		while Counter<MaxRetry do
-			local succ,res=pcall(function() return req({Url=url,Method="GET"}) end)
+		local url = "https://games.roblox.com/v1/games/18687417158/servers/Public?sortOrder=Asc&limit=100"
+		while Counter < MaxRetry do
+			local succ, res = pcall(function() return req({Url = url, Method = "GET"}) end)
 			if succ and res and res.Body then
-				local data=HttpService:JSONDecode(res.Body)
-				if data and data.data and #data.data>0 then
-					local server=data.data[math.random(1,#data.data)]
-					if server.id then
-						MakeNotif("Teleporting..","Server: "..server.id,5,Color3.fromRGB(115,194,89))
-						TeleportService:TeleportToPlaceInstance(18687417158,server.id,Players.LocalPlayer)
-						return
+				local data = HttpService:JSONDecode(res.Body)
+				if data and data.data and #data.data > 0 then
+					for _, server in ipairs(data.data) do
+						if server.id and server.playing < server.maxPlayers then
+							MakeNotif("Teleporting..", "Server: "..server.id, 5, Color3.fromRGB(115,194,89))
+							local success, err = pcall(function()
+								TeleportService:TeleportToPlaceInstance(18687417158, server.id, Players.LocalPlayer)
+							end)
+							if success then
+								return
+							else
+								MakeNotif("Teleport failed", tostring(err), 5, Color3.fromRGB(255,0,0))
+							end
+						end
 					end
 				end
 			end
-			Counter=Counter+1
-			MakeNotif("Retrying","Attempt "..Counter,5,Color3.fromRGB(255,0,0))
+			Counter = Counter + 1
+			MakeNotif("Retrying", "Attempt "..Counter, 5, Color3.fromRGB(255,0,0))
 			task.wait(RetryDelay)
 		end
 	end
 end
+
+Players.LocalPlayer.OnTeleportFailed:Connect(function()
+	MakeNotif("Teleport Failed", "Retrying...", 5, Color3.fromRGB(255,0,0))
+	task.wait(1)
+	teleportToRandomServer()
+end)
+
+Players.LocalPlayer.OnTeleportKick:Connect(function()
+	MakeNotif("Kicked", "Retrying...", 5, Color3.fromRGB(255,0,0))
+	task.wait(1)
+	teleportToRandomServer()
+end)
+
+game.CoreGui.ChildAdded:Connect(function(child)
+	if child:IsA("ScreenGui") and (string.find(child.Name:lower(), "kick") or string.find(child.Name:lower(), "error")) then
+		task.wait(2)
+		teleportToRandomServer()
+	end
+end)
 
 task.delay(2.5,function()
 	pcall(function()
