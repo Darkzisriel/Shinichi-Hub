@@ -330,7 +330,25 @@ local function DoAllGenerators()
 			end
 		end
 	end
-	SendWebhook("Autofarm Done","Finished generators!",0x00FF00,ProfilePicture,"Strawberry Cat Hub")
+		SendWebhook(
+		"Generator Autofarm",
+		"Finished all generators, Current Balance: "
+			.. game:GetService("Players").LocalPlayer.PlayerData.Stats.Currency.Money.Value
+			.. "\nTime Played: "
+			.. (function()
+				local seconds = game:GetService("Players").LocalPlayer.PlayerData.Stats.General.TimePlayed.Value
+				local days = math.floor(seconds / (60 * 60 * 24))
+				seconds = seconds % (60 * 60 * 24)
+				local hours = math.floor(seconds / (60 * 60))
+				seconds = seconds % (60 * 60)
+				local minutes = math.floor(seconds / 60)
+				seconds = seconds % 60
+				return string.format("%02d:%02d:%02d:%02d", days, hours, minutes, seconds)
+			end)(),
+		0x00FF00,
+		ProfilePicture,
+		"Strawberry Cat Hub :smirk:"
+	)
 	task.wait(1)
 	teleportToRandomServer()
 end
@@ -349,7 +367,26 @@ local function DidiDie()
 	while task.wait(0.5) do
 		if Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
 			if Players.LocalPlayer.Character.Humanoid.Health==0 then
-				SendWebhook("Died","Killer killed me!",0xFF0000,ProfilePicture,"Strawberry Cat Hub")
+								SendWebhook(
+					"Generator Autofarm",
+					"Mày bị killer hấp dim rồi\nCurrent Balance: "
+						.. game:GetService("Players").LocalPlayer.PlayerData.Stats.Currency.Money.Value
+						.. "\nTime Played: "
+						.. (function()
+							local seconds =
+								game:GetService("Players").LocalPlayer.PlayerData.Stats.General.TimePlayed.Value
+							local days = math.floor(seconds / (60 * 60 * 24))
+							seconds = seconds % (60 * 60 * 24)
+							local hours = math.floor(seconds / (60 * 60))
+							seconds = seconds % (60 * 60)
+							local minutes = math.floor(seconds / 60)
+							seconds = seconds % 60
+							return string.format("%02d:%02d:%02d:%02d", days, hours, minutes, seconds)
+						end)(),
+					0xFF0000,
+					ProfilePicture,
+					"Strawberry Cat Hub :smirk:"
+				)
 				task.wait(0.5)
 				teleportToRandomServer()
 				break
