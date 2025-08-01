@@ -315,14 +315,14 @@ local function teleportToRandomServer()
 	end
 end
 
-Players.LocalPlayer.OnTeleportFailed:Connect(function()
-	MakeNotif("Teleport Failed", "Retrying...", 5, Color3.fromRGB(255,0,0))
+TeleportService.TeleportInitFailed:Connect(function(player, teleportResult, errorMessage)
+	MakeNotif("Teleport Init Failed", tostring(errorMessage or teleportResult), 5, Color3.fromRGB(255,0,0))
 	task.wait(1)
 	teleportToRandomServer()
 end)
 
-Players.LocalPlayer.OnTeleportKick:Connect(function()
-	MakeNotif("Kicked", "Retrying...", 5, Color3.fromRGB(255,0,0))
+TeleportService.TeleportFailed:Connect(function(player, teleportResult, errorMessage)
+	MakeNotif("Teleport Failed", tostring(errorMessage or teleportResult), 5, Color3.fromRGB(255,0,0))
 	task.wait(1)
 	teleportToRandomServer()
 end)
