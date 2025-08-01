@@ -147,6 +147,15 @@ task.spawn(function()
 end)
 
 MakeNotif("Strawberry Cat Hub", "Script Loaded!", 5, Color3.fromRGB(115, 194, 89))
+task.spawn(function()
+	pcall(function()
+		game:GetService("ReplicatedStorage").Modules.Network.RemoteEvent:FireServer(
+			"UpdateSettings",
+			game:GetService("Players").LocalPlayer.PlayerData.Settings.Game.MaliceDisabled,
+			true
+		)
+	end)
+end)
 
 local function GetProfilePicture()
 	local PlayerID=Players.LocalPlayer.UserId
