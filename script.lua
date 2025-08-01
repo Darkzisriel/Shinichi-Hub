@@ -407,61 +407,60 @@ while true do
 				end
 			end)
 
-			for _, completedgen in ipairs(game.ReplicatedStorage.ObjectiveStorage:GetChildren()) do
-				local required = completedgen:GetAttribute("RequiredProgress")
-				if completedgen.Value == required then
-					SendWebhook(
-						"Generator Autofarm thing",
-						"Finished all generators, Current Balance: "
-							.. Players.LocalPlayer.PlayerData.Stats.Currency.Money.Value
-							.. "\nTime Played: "
-							.. (function()
-								local seconds = Players.LocalPlayer.PlayerData.Stats.General.TimePlayed.Value
-								local days = math.floor(seconds / (60 * 60 * 24))
-								seconds = seconds % (60 * 60 * 24)
-								local hours = math.floor(seconds / (60 * 60))
-								seconds = seconds % (60 * 60)
-								local minutes = math.floor(seconds / 60)
-								seconds = seconds % 60
-								return string.format("%02d:%02d:%02d:%02d", days, hours, minutes, seconds)
-							end)(),
-						0x00FF00,
-						ProfilePicture,
-						".gg/fartsaken | <3"
-					)
-					task.wait(1)
-					teleportToRandomServer()
-					break
-				else
-					for _, gen in ipairs(workspace.Map.Ingame:WaitForChild("Map"):GetChildren()) do
-						if gen.Name == "Generator" and gen.Progress.Value < 100 then
-							local goalPos = gen:WaitForChild("Positions").Right.Position
-							currentCharacter.HumanoidRootPart.CFrame = CFrame.new(goalPos + Vector3.new(0, 3, 0))
-							task.wait(0.1)
-							local prompt = gen.Main:FindFirstChild("Prompt")
-							if prompt then
-								prompt.HoldDuration = 0
-								prompt.RequiresLineOfSight = false
-								prompt.MaxActivationDistance = 99999
-								task.wait(0.1)
-								fireproximityprompt(prompt)
-								task.wait(0.1)
-								busy = true
-								local counter = 0
-								while gen.Progress.Value < 100 do
-									fireproximityprompt(prompt)
-									gen.Remotes.RE:FireServer()
-									task.wait(GenTime)
-									counter = counter + 1
-									if counter >= 10 or not isInGame then
-										break
-									end
-								end
-								busy = false
+			local allGeneratorsDone = true
+			for _, gen in ipairs(workspace.Map.Ingame:WaitForChild("Map"):GetChildren()) do
+				if gen.Name == "Generator" and gen.Progress.Value < 100 then
+					allGeneratorsDone = false
+					local goalPos = gen:WaitForChild("Positions").Right.Position
+					currentCharacter.HumanoidRootPart.CFrame = CFrame.new(goalPos + Vector3.new(0, 3, 0))
+					task.wait(0.1)
+					local prompt = gen.Main:FindFirstChild("Prompt")
+					if prompt then
+						prompt.HoldDuration = 0
+						prompt.RequiresLineOfSight = false
+						prompt.MaxActivationDistance = 99999
+						task.wait(0.1)
+						fireproximityprompt(prompt)
+						task.wait(0.1)
+						busy = true
+						local counter = 0
+						while gen.Progress.Value < 100 do
+							fireproximityprompt(prompt)
+							gen.Remotes.RE:FireServer()
+							task.wait(GenTime)
+							counter = counter + 1
+							if counter >= 10 or not isInGame then
+								break
 							end
 						end
+						busy = false
 					end
 				end
+			end
+			
+			if allGeneratorsDone then
+				SendWebhook(
+					"Generator Autofarm thing",
+					"Finished all generators, Current Balance: "
+						.. Players.LocalPlayer.PlayerData.Stats.Currency.Money.Value
+						.. "\nTime Played: "
+						.. (function()
+							local seconds = Players.LocalPlayer.PlayerData.Stats.General.TimePlayed.Value
+							local days = math.floor(seconds / (60 * 60 * 24))
+							seconds = seconds % (60 * 60 * 24)
+							local hours = math.floor(seconds / (60 * 60))
+							seconds = seconds % (60 * 60)
+							local minutes = math.floor(seconds / 60)
+							seconds = seconds % 60
+							return string.format("%02d:%02d:%02d:%02d", days, hours, minutes, seconds)
+						end)(),
+					0x00FF00,
+					ProfilePicture,
+					".gg/fartsaken | <3"
+				)
+				task.wait(1)
+				teleportToRandomServer()
+				break
 			end
 		end
 	end
