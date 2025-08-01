@@ -316,12 +316,6 @@ local function teleportToRandomServer()
 end
 
 TeleportService.TeleportInitFailed:Connect(function(player, teleportResult, errorMessage)
-	MakeNotif("Teleport Init Failed", tostring(errorMessage or teleportResult), 5, Color3.fromRGB(255,0,0))
-	task.wait(1)
-	teleportToRandomServer()
-end)
-
-TeleportService.TeleportFailed:Connect(function(player, teleportResult, errorMessage)
 	MakeNotif("Teleport Failed", tostring(errorMessage or teleportResult), 5, Color3.fromRGB(255,0,0))
 	task.wait(1)
 	teleportToRandomServer()
@@ -329,6 +323,7 @@ end)
 
 game.CoreGui.ChildAdded:Connect(function(child)
 	if child:IsA("ScreenGui") and (string.find(child.Name:lower(), "kick") or string.find(child.Name:lower(), "error")) then
+		MakeNotif("Kicked or Error", "Retrying...", 5, Color3.fromRGB(255,0,0))
 		task.wait(2)
 		teleportToRandomServer()
 	end
