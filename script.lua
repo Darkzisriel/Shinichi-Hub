@@ -270,6 +270,8 @@ local function findGenerators()
 			end
 		end
 	end
+	return generators
+end
 local function InGenerator()
 	for i, v in ipairs(game:GetService("Players").LocalPlayer.PlayerGui.TemporaryUI:GetChildren()) do
 		print(v.Name)
@@ -327,7 +329,7 @@ local function DidiDie()
 	while task.wait(0.5) do
 		if Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
 			if Players.LocalPlayer.Character.Humanoid.Health==0 then
-				SendWebhook("Died","Killer killed me!",0xFF0000,ProfilePicture,"Strawberry Cat Hub)
+				SendWebhook("Died","Killer killed me!",0xFF0000,ProfilePicture,"Strawberry Cat Hub")
 				task.wait(0.5)
 				teleportToRandomServer()
 				break
