@@ -296,24 +296,26 @@ local function teleportToRandomServer()
 					for _, server in ipairs(data.data) do
 						if server.id and server.playing < server.maxPlayers then
 							MakeNotif("Teleporting..", "Server: "..server.id, 5, Color3.fromRGB(115,194,89))
-							local success, err = pcall(function()
+							local ok, err = pcall(function()
 								TeleportService:TeleportToPlaceInstance(18687417158, server.id, Players.LocalPlayer)
 							end)
-							if success then
-								return
-							else
+							if not ok then
 								MakeNotif("Teleport failed", tostring(err), 5, Color3.fromRGB(255,0,0))
+								task.wait(RetryDelay)
+							else
+								return -- success
 							end
 						end
 					end
 				end
 			end
-			Counter = Counter + 1
+			Counter += 1
 			MakeNotif("Retrying", "Attempt "..Counter, 5, Color3.fromRGB(255,0,0))
 			task.wait(RetryDelay)
 		end
 	end
 end
+
 
 TeleportService.TeleportInitFailed:Connect(function(player, teleportResult, errorMessage)
 	MakeNotif("Teleport Failed", tostring(errorMessage or teleportResult), 5, Color3.fromRGB(255,0,0))
