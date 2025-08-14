@@ -668,6 +668,7 @@ local function AmIInGameYet()
 		if child == game:GetService("Players").LocalPlayer.Character then
 			task.wait(4)
 			HandleInvisibility(true)
+			pcall(task.spawn, CheckNearbyKillerAndRun)
 			DoAllGenerators()
 		end
 	end)
@@ -711,7 +712,6 @@ startDetection()
 
 -- Start background tasks
 pcall(task.spawn, DidiDie)
-pcall(task.spawn, CheckNearbyKillerAndRun)
 AmIInGameYet()
 
 -- Character respawn handler
