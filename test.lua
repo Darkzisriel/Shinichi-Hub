@@ -179,7 +179,7 @@ local ultraInstinctEnabled = true -- Luôn bật
 local canDodge = true
 local lastNotifTime = 0
 local notifCooldown = 2
-local dodgeDistance = 9 -- Khoảng cách cố định
+local dodgeDistance = 30 -- Khoảng cách cố định
 
 -- Animations
 local dodgeAnims = {
