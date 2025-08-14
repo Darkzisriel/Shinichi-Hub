@@ -476,7 +476,7 @@ local function CheckNearbyKillerAndRun()
 						-- If only 1 generator left, fly up high
 						if remainingGens <= 1 then
 							local currentPos = char.HumanoidRootPart.Position
-							char.HumanoidRootPart.CFrame = CFrame.new(currentPos.X + 30, currentPos.Y + 20, currentPos.Z + 20)
+							char.HumanoidRootPart.CFrame = CFrame.new(currentPos.X + 30, currentPos.Y + 30, currentPos.Z + 20)
 							MakeNotif("Final Generator!", "Flying high to avoid killer - only 1 gen left!", 5, Color3.fromRGB(255, 165, 0))
 						else
 							-- Normal behavior - go to furthest generator
