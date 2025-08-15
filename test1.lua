@@ -151,7 +151,7 @@ task.spawn(function()
 	end
 end)
 
-MakeNotif("Strawberry Cat Hub", "Script Loaded!", 5, Color3.fromRGB(115, 194, 89))
+MakeNotif("Crystal Hub", "Script Loaded!", 5, Color3.fromRGB(115, 194, 89))
 
 -- Disable Malice
 task.spawn(function()
@@ -369,18 +369,53 @@ local function teleportToRandomServer()
 	end
 end
 
--- Error handling
+-- Error handling and kick detection
 TeleportService.TeleportInitFailed:Connect(function(player, teleportResult, errorMessage)
 	MakeNotif("Teleport Failed", tostring(errorMessage or teleportResult), 5, Color3.fromRGB(255,0,0))
 	task.wait(1)
 	teleportToRandomServer()
 end)
 
+-- Enhanced kick detection
 game.CoreGui.ChildAdded:Connect(function(child)
-	if child:IsA("ScreenGui") and (string.find(child.Name:lower(), "kick") or string.find(child.Name:lower(), "error")) then
-		MakeNotif("Kicked or Error", "Retrying...", 5, Color3.fromRGB(255,0,0))
-		task.wait(2)
-		teleportToRandomServer()
+	if child:IsA("ScreenGui") then
+		local childName = child.Name:lower()
+		if string.find(childName, "kick") or string.find(childName, "error") or 
+		   string.find(childName, "ban") or string.find(childName, "disconnect") or
+		   string.find(childName, "boot") then
+			MakeNotif("Kicked/Error Detected", "Auto-hopping to new server...", 5, Color3.fromRGB(255,0,0))
+			task.wait(1)
+			teleportToRandomServer()
+		end
+	end
+end)
+
+-- Additional kick detection through PlayerRemoving
+game.Players.PlayerRemoving:Connect(function(player)
+	if player == Players.LocalPlayer then
+		-- Player is being removed, attempt to rejoin quickly
+		task.spawn(function()
+			task.wait(0.5)
+			teleportToRandomServer()
+		end)
+	end
+end)
+
+-- Monitor for unexpected disconnections
+local lastHeartbeat = tick()
+RunService.Heartbeat:Connect(function()
+	lastHeartbeat = tick()
+end)
+
+-- Check for connection issues
+task.spawn(function()
+	while task.wait(5) do
+		if tick() - lastHeartbeat > 10 then
+			-- Haven't received heartbeat in 10 seconds, possible disconnect
+			MakeNotif("Connection Issue", "Heartbeat timeout, attempting to reconnect...", 5, Color3.fromRGB(255,165,0))
+			teleportToRandomServer()
+			break
+		end
 	end
 end)
 
@@ -505,30 +540,22 @@ local function CheckNearbyKillerAndRun()
 				if char and char:FindFirstChild("HumanoidRootPart") and killer:FindFirstChild("HumanoidRootPart") then
 					local dist = (killer.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
 					if dist <= 50 then
-						local remainingGens = countRemainingGenerators()
 						local killerPos = killer.HumanoidRootPart.Position
 						
-						-- If only 1 generator left, fly up high
-						if remainingGens <= 1 then
-							local currentPos = char.HumanoidRootPart.Position
-							char.HumanoidRootPart.CFrame = CFrame.new(currentPos.X, currentPos.Y + 20, currentPos.Z)
-							MakeNotif("Final Generator!", "Flying high to avoid killer - only 1 gen left!", 5, Color3.fromRGB(255, 165, 0))
+						-- Smart avoidance - use furthest known generator position from killer
+						local safestSpot = GetFurthestSafePosition(killerPos)
+						if safestSpot then
+							-- Teleport to the saved generator position (slightly offset)
+							local safePos = safestSpot.cframe + safestSpot.cframe.LookVector * 3
+							char.HumanoidRootPart.CFrame = safePos
+							local distance = math.floor((safestSpot.position - killerPos).Magnitude)
+							MakeNotif("Smart Escape!", string.format("Escaped to position %d studs from killer!", distance), 5, Color3.fromRGB(0, 255, 255))
 						else
-							-- Smart avoidance - use furthest known generator position from killer
-							local safestSpot = GetFurthestSafePosition(killerPos)
-							if safestSpot then
-								-- Teleport to the saved generator position (slightly offset)
-								local safePos = safestSpot.cframe + safestSpot.cframe.LookVector * 3
-								char.HumanoidRootPart.CFrame = safePos
-								local distance = math.floor((safestSpot.position - killerPos).Magnitude)
-								MakeNotif("Smart Escape!", string.format("Escaped to position %d studs from killer!", distance), 5, Color3.fromRGB(0, 255, 255))
-							else
-								-- Fallback to original method if no stored positions
-								local furthestGen = GetFurthestGenerator()
-								if furthestGen then
-									char.HumanoidRootPart.CFrame = furthestGen:GetPivot() + furthestGen:GetPivot().LookVector*3
-									MakeNotif("Warning", "Killer nearby! Teleported to furthest generator.", 5, Color3.fromRGB(255, 100, 100))
-								end
+							-- Fallback to original method if no stored positions
+							local furthestGen = GetFurthestGenerator()
+							if furthestGen then
+								char.HumanoidRootPart.CFrame = furthestGen:GetPivot() + furthestGen:GetPivot().LookVector*3
+								MakeNotif("Warning", "Killer nearby! Teleported to furthest generator.", 5, Color3.fromRGB(255, 100, 100))
 							end
 						end
 					end
@@ -629,7 +656,7 @@ local function DoAllGenerators()
 			end)(),
 		0x00FF00,
 		ProfilePicture,
-		"Strawberry Cat Hub :smirk:"
+		"Crystal Hub 😏"
 	)
 	task.wait(1)
 	teleportToRandomServer()
@@ -668,7 +695,8 @@ local function AmIInGameYet()
 		if child == game:GetService("Players").LocalPlayer.Character then
 			task.wait(4)
 			HandleInvisibility(true)
-			pcall(task.spawn, CheckNearbyKillerAndRun)
+		    pcall(task.spawn, DidiDie)
+            pcall(task.spawn, CheckNearbyKillerAndRun)
 			DoAllGenerators()
 		end
 	end)
@@ -697,7 +725,7 @@ local function DidiDie()
 						end)(),
 					0xFF0000,
 					ProfilePicture,
-					"Strawberry Cat Hub :smirk:"
+					"Crystal Hub 😏"
 				)
 				task.wait(0.5)
 				teleportToRandomServer()
@@ -709,9 +737,6 @@ end
 
 -- Initialize Ultra Instinct
 startDetection()
-
--- Start background tasks
-pcall(task.spawn, DidiDie)
 AmIInGameYet()
 
 -- Character respawn handler
