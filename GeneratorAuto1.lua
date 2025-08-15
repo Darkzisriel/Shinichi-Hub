@@ -19,14 +19,14 @@ local AliveNotificaiotna, Nnnnnnotificvationui, ProfilePicture = {}, nil, ""
 if DCWebhook == "" then DCWebhook = false end
 
 local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+
 local blur = Instance.new("BlurEffect")
 blur.Name = "CrystalBlur"
 blur.Size = 35
 blur.Parent = Lighting
-
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local playerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CrystalHub"
@@ -35,8 +35,8 @@ screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
 
 local container = Instance.new("Frame")
-container.Size = UDim2.new(0, 800, 0, 350) -- tăng height để có chỗ Money
-container.Position = UDim2.new(0.5, -400, 0.5, -175)
+container.Size = UDim2.new(0, 800, 0, 400)
+container.Position = UDim2.new(0.5, -400, 0.5, -200)
 container.BackgroundTransparency = 1
 container.Parent = screenGui
 
@@ -71,10 +71,9 @@ status.Font = mainFont
 status.Text = "Status : Farming"
 status.Parent = container
 
---// Thêm Money label dưới status
 local moneyLabel = Instance.new("TextLabel")
 moneyLabel.Size = UDim2.new(1, 0, 0, 30)
-moneyLabel.Position = UDim2.new(0, 0, 0, 80) -- ngay dưới status
+moneyLabel.Position = UDim2.new(0, 0, 0, 80)
 moneyLabel.BackgroundTransparency = 1
 moneyLabel.TextColor3 = white
 moneyLabel.TextScaled = true
@@ -102,26 +101,44 @@ discord.Font = mainFont
 discord.Text = "discord.gg/fRz66wAuUS"
 discord.Parent = container
 
---// Update Play Time và Money mỗi giây
+local discordLinkButton = Instance.new("TextButton")
+discordLinkButton.Size = UDim2.new(0, 200, 0, 40)
+discordLinkButton.Position = UDim2.new(0.5, -100, 0, 190)
+discordLinkButton.AnchorPoint = Vector2.new(0.5, 0)
+discordLinkButton.BackgroundColor3 = Color3.fromRGB(100, 0, 200)
+discordLinkButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+discordLinkButton.TextScaled = true
+discordLinkButton.Font = mainFont
+discordLinkButton.Text = "COPY LINK"
+discordLinkButton.Parent = container
+
+local discordLink = "https://discord.gg/fRz66wAuUS"
+discordLinkButton.MouseButton1Click:Connect(function()
+    if setclipboard then
+        setclipboard(discordLink)
+        discordLinkButton.Text = "COPIED!"
+        task.wait(1)
+        discordLinkButton.Text = "COPY LINK"
+    end
+end)
+
 local startTime = tick()
 task.spawn(function()
-	while true do
-		task.wait(1)
-		-- Update play time
-		local elapsed = math.floor(tick() - startTime)
-		local h = math.floor(elapsed / 3600)
-		local m = math.floor((elapsed % 3600) / 60)
-		local s = elapsed % 60
-		playTime.Text = string.format("Play Time : %02d Hours %02d Minutes %02d Seconds", h, m, s)
-		
-		-- Update Money
-		local success, money = pcall(function()
-			return LocalPlayer.PlayerData.Stats.Currency.Money.Value
-		end)
-		if success then
-			moneyLabel.Text = "Money : " .. tostring(money)
-		end
-	end
+    while true do
+        task.wait(1)
+        local elapsed = math.floor(tick() - startTime)
+        local h = math.floor(elapsed / 3600)
+        local m = math.floor((elapsed % 3600) / 60)
+        local s = elapsed % 60
+        playTime.Text = string.format("Play Time : %02d Hours %02d Minutes %02d Seconds", h, m, s)
+
+        local success, money = pcall(function()
+            return LocalPlayer.PlayerData.Stats.Currency.Money.Value
+        end)
+        if success then
+            moneyLabel.Text = "Money : " .. tostring(money)
+        end
+    end
 end)
 
 local function CreateNotificationUI()
@@ -802,4 +819,5 @@ Players.LocalPlayer.CharacterAdded:Connect(function()
 	ultraInstinctEnabled = true
 	startDetection() 
 end)
+
 
