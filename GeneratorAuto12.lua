@@ -103,7 +103,7 @@ discord.Parent = container
 
 local discordLinkButton = Instance.new("TextButton")
 discordLinkButton.Size = UDim2.new(0, 200, 0, 40)
-discordLinkButton.Position = UDim2.new(0.5, -100, 0, 190)
+discordLinkButton.Position = UDim2.new(0, 0, 0, 190)
 discordLinkButton.AnchorPoint = Vector2.new(0.5, 0)
 discordLinkButton.BackgroundColor3 = Color3.fromRGB(100, 0, 200)
 discordLinkButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -819,5 +819,6 @@ Players.LocalPlayer.CharacterAdded:Connect(function()
 	ultraInstinctEnabled = true
 	startDetection() 
 end)
+
 
 
