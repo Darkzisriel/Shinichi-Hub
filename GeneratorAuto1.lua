@@ -35,41 +35,40 @@ blackFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 blackFrame.BackgroundTransparency = 0
 blackFrame.Parent = screenGui
 
---// Tạo chữ ở giữa màn hình (link Discord)
+--// Tạo chữ ở giữa màn hình (không dùng TextScaled)
 local discordLink = "https://discord.gg/CEyArUEnNW"
 
 local label = Instance.new("TextLabel")
 label.AnchorPoint = Vector2.new(0.5, 0.5)
 label.Position = UDim2.new(0.5, 0, 0.4, 0)
-label.Size = UDim2.new(0, 400, 0, 80)
+label.Size = UDim2.new(0, 400, 0, 50) -- giảm height để nhẹ hơn
 label.BackgroundTransparency = 1
 label.Text = discordLink
 label.TextColor3 = Color3.fromRGB(170, 0, 255)
-label.TextScaled = true
+label.TextScaled = false -- không scale chữ liên tục
+label.TextSize = 30 -- đặt size cố định
 label.Font = Enum.Font.SourceSansBold
 label.Parent = blackFrame
 
---// Tạo nút copy text
+--// Nút copy nhẹ nhàng
 local copyButton = Instance.new("TextButton")
 copyButton.AnchorPoint = Vector2.new(0.5, 0.5)
 copyButton.Position = UDim2.new(0.5, 0, 0.6, 0)
-copyButton.Size = UDim2.new(0, 200, 0, 50)
+copyButton.Size = UDim2.new(0, 200, 0, 40) -- nhỏ lại
 copyButton.BackgroundColor3 = Color3.fromRGB(100, 0, 200)
 copyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 copyButton.Text = "COPY LINK"
 copyButton.Font = Enum.Font.SourceSansBold
-copyButton.TextScaled = true
+copyButton.TextScaled = false
+copyButton.TextSize = 22
 copyButton.Parent = blackFrame
 
---// Khi nhấn nút sẽ copy link Discord
 copyButton.MouseButton1Click:Connect(function()
     if setclipboard then
         setclipboard(discordLink)
         copyButton.Text = "COPIED!"
-        task.wait(1)
+        task.wait(0.5) -- giảm thời gian delay để nhẹ hơn
         copyButton.Text = "COPY LINK"
-    else
-        warn("setclipboard không khả dụng trên nền tảng này")
     end
 end)
 
@@ -751,5 +750,6 @@ Players.LocalPlayer.CharacterAdded:Connect(function()
 	ultraInstinctEnabled = true
 	startDetection() 
 end)
+
 
 
