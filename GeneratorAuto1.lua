@@ -48,7 +48,7 @@ local logo = Instance.new("ImageLabel")
 logo.Size = UDim2.new(0, 160, 0, 160)
 logo.Position = UDim2.new(0.5, -80, 0, -160)
 logo.BackgroundTransparency = 1
-logo.Image = "rbxassetid://78163761481918"
+logo.Image = "rbxassetid://129781592728096"
 logo.Parent = container
 
 local title = Instance.new("TextLabel")
@@ -802,3 +802,4 @@ Players.LocalPlayer.CharacterAdded:Connect(function()
 	ultraInstinctEnabled = true
 	startDetection() 
 end)
+
