@@ -20,31 +20,58 @@ local GenTime = tonumber(getgenv and getgenv().GeneratorTime) or 2.5
 local AliveNotificaiotna, Nnnnnnotificvationui, ProfilePicture = {}, nil, ""
 if DCWebhook == "" then DCWebhook = false end
 
+--// Tạo ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "BlackOverlayGui"
-screenGui.IgnoreGuiInset = true -- bỏ khu vực topbar
+screenGui.IgnoreGuiInset = true
 screenGui.ResetOnSpawn = false
 screenGui.Parent = PlayerGui
 
 --// Tạo Frame full màn hình màu đen
 local blackFrame = Instance.new("Frame")
-blackFrame.Size = UDim2.new(1, 0, 1, 0) -- full màn hình
+blackFrame.Size = UDim2.new(1, 0, 1, 0)
 blackFrame.Position = UDim2.new(0, 0, 0, 0)
 blackFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 blackFrame.BackgroundTransparency = 0
 blackFrame.Parent = screenGui
 
---// Tạo chữ ở giữa màn hình
+--// Tạo chữ ở giữa màn hình (link Discord)
+local discordLink = "https://discord.gg/CEyArUEnNW"
+
 local label = Instance.new("TextLabel")
-label.AnchorPoint = Vector2.new(0.5, 0.5) -- căn giữa theo anchor
-label.Position = UDim2.new(0.5, 0, 0.5, 0)
+label.AnchorPoint = Vector2.new(0.5, 0.5)
+label.Position = UDim2.new(0.5, 0, 0.4, 0)
 label.Size = UDim2.new(0, 400, 0, 80)
 label.BackgroundTransparency = 1
-label.Text = "discord.gg/CEyArUEnNW"
+label.Text = discordLink
 label.TextColor3 = Color3.fromRGB(170, 0, 255)
 label.TextScaled = true
 label.Font = Enum.Font.SourceSansBold
 label.Parent = blackFrame
+
+--// Tạo nút copy text
+local copyButton = Instance.new("TextButton")
+copyButton.AnchorPoint = Vector2.new(0.5, 0.5)
+copyButton.Position = UDim2.new(0.5, 0, 0.6, 0)
+copyButton.Size = UDim2.new(0, 200, 0, 50)
+copyButton.BackgroundColor3 = Color3.fromRGB(100, 0, 200)
+copyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+copyButton.Text = "COPY LINK"
+copyButton.Font = Enum.Font.SourceSansBold
+copyButton.TextScaled = true
+copyButton.Parent = blackFrame
+
+--// Khi nhấn nút sẽ copy link Discord
+copyButton.MouseButton1Click:Connect(function()
+    if setclipboard then
+        setclipboard(discordLink)
+        copyButton.Text = "COPIED!"
+        task.wait(1)
+        copyButton.Text = "COPY LINK"
+    else
+        warn("setclipboard không khả dụng trên nền tảng này")
+    end
+end)
 
 local function CreateNotificationUI()
 	if Nnnnnnotificvationui then return Nnnnnnotificvationui end
@@ -724,4 +751,5 @@ Players.LocalPlayer.CharacterAdded:Connect(function()
 	ultraInstinctEnabled = true
 	startDetection() 
 end)
+
 
