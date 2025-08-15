@@ -11,8 +11,6 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local lp = Players.LocalPlayer
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 local DCWebhook = (getgenv and getgenv().DiscordWebhook) or false
 local GenTime = tonumber(getgenv and getgenv().GeneratorTime) or 2.5
@@ -20,56 +18,110 @@ local GenTime = tonumber(getgenv and getgenv().GeneratorTime) or 2.5
 local AliveNotificaiotna, Nnnnnnotificvationui, ProfilePicture = {}, nil, ""
 if DCWebhook == "" then DCWebhook = false end
 
---// Tạo ScreenGui
+local Lighting = game:GetService("Lighting")
+local blur = Instance.new("BlurEffect")
+blur.Name = "CrystalBlur"
+blur.Size = 35
+blur.Parent = Lighting
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "BlackOverlayGui"
-screenGui.IgnoreGuiInset = true
+screenGui.Name = "CrystalHub"
+screenGui.Parent = playerGui
 screenGui.ResetOnSpawn = false
-screenGui.Parent = PlayerGui
+screenGui.IgnoreGuiInset = true
 
---// Tạo Frame full màn hình màu đen
-local blackFrame = Instance.new("Frame")
-blackFrame.Size = UDim2.new(1, 0, 1, 0)
-blackFrame.Position = UDim2.new(0, 0, 0, 0)
-blackFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-blackFrame.BackgroundTransparency = 0
-blackFrame.Parent = screenGui
+local container = Instance.new("Frame")
+container.Size = UDim2.new(0, 800, 0, 350) -- tăng height để có chỗ Money
+container.Position = UDim2.new(0.5, -400, 0.5, -175)
+container.BackgroundTransparency = 1
+container.Parent = screenGui
 
---// Tạo chữ ở giữa màn hình (không dùng TextScaled)
-local discordLink = "https://discord.gg/CEyArUEnNW"
+local mainFont = Enum.Font.FredokaOne
+local white = Color3.new(1, 1, 1)
+local blue = Color3.fromRGB(60, 100, 255)
 
-local label = Instance.new("TextLabel")
-label.AnchorPoint = Vector2.new(0.5, 0.5)
-label.Position = UDim2.new(0.5, 0, 0.4, 0)
-label.Size = UDim2.new(0, 400, 0, 50) -- giảm height để nhẹ hơn
-label.BackgroundTransparency = 1
-label.Text = discordLink
-label.TextColor3 = Color3.fromRGB(170, 0, 255)
-label.TextScaled = false -- không scale chữ liên tục
-label.TextSize = 30 -- đặt size cố định
-label.Font = Enum.Font.SourceSansBold
-label.Parent = blackFrame
+local logo = Instance.new("ImageLabel")
+logo.Size = UDim2.new(0, 160, 0, 160)
+logo.Position = UDim2.new(0.5, -80, 0, -160)
+logo.BackgroundTransparency = 1
+logo.Image = "rbxassetid://78163761481918"
+logo.Parent = container
 
---// Nút copy nhẹ nhàng
-local copyButton = Instance.new("TextButton")
-copyButton.AnchorPoint = Vector2.new(0.5, 0.5)
-copyButton.Position = UDim2.new(0.5, 0, 0.6, 0)
-copyButton.Size = UDim2.new(0, 200, 0, 40) -- nhỏ lại
-copyButton.BackgroundColor3 = Color3.fromRGB(100, 0, 200)
-copyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-copyButton.Text = "COPY LINK"
-copyButton.Font = Enum.Font.SourceSansBold
-copyButton.TextScaled = false
-copyButton.TextSize = 22
-copyButton.Parent = blackFrame
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundTransparency = 1
+title.TextColor3 = blue
+title.TextScaled = true
+title.Font = mainFont
+title.Text = "Crystal Hub - AutoFarm Forsaken [Blatant]"
+title.Parent = container
 
-copyButton.MouseButton1Click:Connect(function()
-    if setclipboard then
-        setclipboard(discordLink)
-        copyButton.Text = "COPIED!"
-        task.wait(0.5) -- giảm thời gian delay để nhẹ hơn
-        copyButton.Text = "COPY LINK"
-    end
+local status = Instance.new("TextLabel")
+status.Size = UDim2.new(1, 0, 0, 30)
+status.Position = UDim2.new(0, 0, 0, 50)
+status.BackgroundTransparency = 1
+status.TextColor3 = white
+status.TextScaled = true
+status.Font = mainFont
+status.Text = "Status : Farming"
+status.Parent = container
+
+--// Thêm Money label dưới status
+local moneyLabel = Instance.new("TextLabel")
+moneyLabel.Size = UDim2.new(1, 0, 0, 30)
+moneyLabel.Position = UDim2.new(0, 0, 0, 80) -- ngay dưới status
+moneyLabel.BackgroundTransparency = 1
+moneyLabel.TextColor3 = white
+moneyLabel.TextScaled = true
+moneyLabel.Font = mainFont
+moneyLabel.Text = "Money : 0"
+moneyLabel.Parent = container
+
+local playTime = Instance.new("TextLabel")
+playTime.Size = UDim2.new(1, 0, 0, 30)
+playTime.Position = UDim2.new(0, 0, 0, 110)
+playTime.BackgroundTransparency = 1
+playTime.TextColor3 = white
+playTime.TextScaled = true
+playTime.Font = mainFont
+playTime.Text = "Play Time : 00 Hours 00 Minutes 00 Seconds"
+playTime.Parent = container
+
+local discord = Instance.new("TextLabel")
+discord.Size = UDim2.new(1, 0, 0, 30)
+discord.Position = UDim2.new(0, 0, 0, 150)
+discord.BackgroundTransparency = 1
+discord.TextColor3 = white
+discord.TextScaled = true
+discord.Font = mainFont
+discord.Text = "discord.gg/fRz66wAuUS"
+discord.Parent = container
+
+--// Update Play Time và Money mỗi giây
+local startTime = tick()
+task.spawn(function()
+	while true do
+		task.wait(1)
+		-- Update play time
+		local elapsed = math.floor(tick() - startTime)
+		local h = math.floor(elapsed / 3600)
+		local m = math.floor((elapsed % 3600) / 60)
+		local s = elapsed % 60
+		playTime.Text = string.format("Play Time : %02d Hours %02d Minutes %02d Seconds", h, m, s)
+		
+		-- Update Money
+		local success, money = pcall(function()
+			return LocalPlayer.PlayerData.Stats.Currency.Money.Value
+		end)
+		if success then
+			moneyLabel.Text = "Money : " .. tostring(money)
+		end
+	end
 end)
 
 local function CreateNotificationUI()
@@ -750,6 +802,3 @@ Players.LocalPlayer.CharacterAdded:Connect(function()
 	ultraInstinctEnabled = true
 	startDetection() 
 end)
-
-
-
