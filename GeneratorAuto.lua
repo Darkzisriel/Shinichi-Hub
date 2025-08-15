@@ -22,23 +22,27 @@ if DCWebhook == "" then DCWebhook = false end
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "BlackOverlayGui"
+screenGui.IgnoreGuiInset = true -- bỏ khu vực topbar
 screenGui.ResetOnSpawn = false
 screenGui.Parent = PlayerGui
 
+--// Tạo Frame full màn hình màu đen
 local blackFrame = Instance.new("Frame")
-blackFrame.Size = UDim2.new(1, 0, 1, 0)
+blackFrame.Size = UDim2.new(1, 0, 1, 0) -- full màn hình
 blackFrame.Position = UDim2.new(0, 0, 0, 0)
-blackFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- màu đen
+blackFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 blackFrame.BackgroundTransparency = 0
 blackFrame.Parent = screenGui
 
+--// Tạo chữ ở giữa màn hình
 local label = Instance.new("TextLabel")
-label.Size = UDim2.new(0, 300, 0, 50) -- Kích thước chữ
-label.Position = UDim2.new(0.5, -150, 0.5, -25) -- Căn giữa
-label.BackgroundTransparency = 1 -- không nền
-label.Text = "MÀN HÌNH ĐEN" -- Thay chữ tùy ý
-label.TextColor3 = Color3.fromRGB(170, 0, 255) -- màu tím
-label.TextScaled = true -- chữ tự scale vừa với label
+label.AnchorPoint = Vector2.new(0.5, 0.5) -- căn giữa theo anchor
+label.Position = UDim2.new(0.5, 0, 0.5, 0)
+label.Size = UDim2.new(0, 400, 0, 80)
+label.BackgroundTransparency = 1
+label.Text = "discord.gg/CEyArUEnNW"
+label.TextColor3 = Color3.fromRGB(170, 0, 255)
+label.TextScaled = true
 label.Font = Enum.Font.SourceSansBold
 label.Parent = blackFrame
 
@@ -720,3 +724,4 @@ Players.LocalPlayer.CharacterAdded:Connect(function()
 	ultraInstinctEnabled = true
 	startDetection() 
 end)
+
