@@ -805,7 +805,7 @@ local function AmIInGameYet()
 			task.wait(4)
 			HandleInvisibility(true)
 		    pcall(task.spawn, DidiDie)
-            pcall(task.spawn, CheckNearbyKillerAndRun)
+            CheckNearbyKillerAndRun()
 			DoAllGenerators()
 		end
 	end)
@@ -850,4 +850,5 @@ AmIInGameYet()
 Players.LocalPlayer.CharacterAdded:Connect(function()
 	ultraInstinctEnabled = true
 	startDetection() 
+
 end)
