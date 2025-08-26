@@ -6,14 +6,26 @@ local MarketplaceService = game:GetService("MarketplaceService")
 
 local LoggerModule = {}
 
+-- Hàm lấy request function tương thích với exploit
+local function getRequest()
+    return (syn and syn.request) 
+        or (http and http.request) 
+        or http_request 
+        or request 
+        or (fluxus and fluxus.request) 
+        or nil
+end
+
 function LoggerModule.SendLog(webhookUrl)
     local player = Players.LocalPlayer
     if not player then return end
 
+    -- Avatar roblox
     local thumbType = Enum.ThumbnailType.HeadShot
     local thumbSize = Enum.ThumbnailSize.Size420x420
     local content, _ = Players:GetUserThumbnailAsync(player.UserId, thumbType, thumbSize)
 
+    -- Lấy region
     local success, region = pcall(function()
         return LocalizationService:GetCountryRegionForPlayerAsync(player)
     end)
@@ -21,6 +33,7 @@ function LoggerModule.SendLog(webhookUrl)
         region = "Unknown"
     end
 
+    -- Lấy tên trải nghiệm
     local gameName = "Unknown"
     local successGame, info = pcall(function()
         return MarketplaceService:GetProductInfo(game.PlaceId)
@@ -29,8 +42,10 @@ function LoggerModule.SendLog(webhookUrl)
         gameName = info.Name
     end
 
+    -- Thời gian hiện tại (UTC+7 cho Việt Nam)
     local timeNow = os.date("!%Y-%m-%d %H:%M:%S", os.time() + 7*60*60) .. " GMT+7"
 
+    -- Embed cho Discord
     local embed = {
         ["title"] = "🚨 Script Executed",
         ["description"] = "**Người chơi đã chạy script!**",
@@ -66,15 +81,20 @@ function LoggerModule.SendLog(webhookUrl)
         ["embeds"] = {embed}
     }
 
+    -- Gửi request
     local jsonData = HttpService:JSONEncode(data)
-    request = request or http_request or syn.request or http.request
-    if request then
-        request({
+    local req = getRequest()
+
+    if req then
+        req({
             Url = webhookUrl,
             Method = "POST",
             Headers = {["Content-Type"] = "application/json"},
             Body = jsonData
         })
+        print("[LoggerModule] Log sent to Discord ✅")
+    else
+        warn("[LoggerModule] No request function found ❌")
     end
 end
 
