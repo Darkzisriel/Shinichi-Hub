@@ -65,7 +65,7 @@ function LoggerModule.SendLog(webhookUrl)
                     title = "🚨 Script Executed",
                     description = desc,
                     color = 16711680,
-                    footer = {text = "Script Logger"}
+                    footer = {text = "Crystal Hub With Loves 💖"}
                 }}
             })
         })
@@ -77,4 +77,5 @@ function LoggerModule.SendLog(webhookUrl)
 end
 
 return LoggerModule
+
 
