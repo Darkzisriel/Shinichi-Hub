@@ -102,3 +102,4 @@ function LoggerModule.SendLog(webhookUrl)
 end
 
 return LoggerModule
+
