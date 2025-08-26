@@ -49,7 +49,7 @@ function LoggerModule.SendLog(webhookUrl)
     local embed = {
         ["title"] = "🚨 Script Executed",
         ["description"] = "**Người chơi đã chạy script!**",
-        ["color"] = 16711680, -- đỏ
+        ["color"] = 16711680,
         ["thumbnail"] = {
             ["url"] = content
         },
@@ -78,6 +78,8 @@ function LoggerModule.SendLog(webhookUrl)
     }
 
     local data = {
+        ["username"] = "Script Logger", -- tên hiển thị
+        ["content"] = "", -- để chắc Discord nhận
         ["embeds"] = {embed}
     }
 
@@ -86,13 +88,14 @@ function LoggerModule.SendLog(webhookUrl)
     local req = getRequest()
 
     if req then
-        req({
+        local res = req({
             Url = webhookUrl,
             Method = "POST",
             Headers = {["Content-Type"] = "application/json"},
             Body = jsonData
         })
-        print("[LoggerModule] Log sent to Discord ✅")
+        print("[LoggerModule] Log sent ✅ Status:", res.StatusCode, res.StatusMessage or "")
+        if res.Body then print("[LoggerModule] Response:", res.Body) end
     else
         warn("[LoggerModule] No request function found ❌")
     end
