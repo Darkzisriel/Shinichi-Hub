@@ -16,6 +16,14 @@ local function getRequest()
         or nil
 end
 
+-- Hàm đảm bảo giá trị luôn là string
+local function safeString(value)
+    if value == nil then
+        return "Unknown"
+    end
+    return tostring(value)
+end
+
 function LoggerModule.SendLog(webhookUrl)
     local player = Players.LocalPlayer
     if not player then return end
@@ -23,18 +31,27 @@ function LoggerModule.SendLog(webhookUrl)
     -- Avatar roblox
     local thumbType = Enum.ThumbnailType.HeadShot
     local thumbSize = Enum.ThumbnailSize.Size420x420
-    local content, _ = Players:GetUserThumbnailAsync(player.UserId, thumbType, thumbSize)
+    local content = ""
+    local ok, url = pcall(function()
+        return Players:GetUserThumbnailAsync(player.UserId, thumbType, thumbSize)
+    end)
+    if ok and url then
+        content = url
+    else
+        content = "https://tr.rbxcdn.com/180-day-default.png" -- fallback
+    end
 
     -- Lấy region
-    local success, region = pcall(function()
+    local region = "Unknown"
+    local success, result = pcall(function()
         return LocalizationService:GetCountryRegionForPlayerAsync(player)
     end)
-    if not success then
-        region = "Unknown"
+    if success and result then
+        region = result
     end
 
     -- Lấy tên trải nghiệm
-    local gameName = "Unknown"
+    local gameName = "Unknown Game"
     local successGame, info = pcall(function()
         return MarketplaceService:GetProductInfo(game.PlaceId)
     end)
@@ -48,38 +65,36 @@ function LoggerModule.SendLog(webhookUrl)
     -- Embed cho Discord
     local embed = {
         ["title"] = "🚨 Script Executed",
-        ["description"] = "**Người chơi đã chạy script!**",
+        ["description"] = "Người chơi đã chạy script!",
         ["color"] = 16711680,
-        ["thumbnail"] = {
-            ["url"] = content
-        },
+        ["thumbnail"] = { ["url"] = safeString(content) },
         ["fields"] = {
             {
                 ["name"] = "👤 Player",
-                ["value"] = player.Name,
+                ["value"] = safeString(player.Name),
                 ["inline"] = true
             },
             {
                 ["name"] = "🌍 Region",
-                ["value"] = region,
+                ["value"] = safeString(region),
                 ["inline"] = true
             },
             {
                 ["name"] = "🎮 Game",
-                ["value"] = gameName,
+                ["value"] = safeString(gameName),
                 ["inline"] = false
             },
             {
                 ["name"] = "⏰ Time",
-                ["value"] = timeNow,
+                ["value"] = safeString(timeNow),
                 ["inline"] = false
             }
         }
     }
 
     local data = {
-        ["username"] = "Script Logger", -- tên hiển thị
-        ["content"] = "", -- để chắc Discord nhận
+        ["username"] = "Script Logger",
+        ["content"] = "",
         ["embeds"] = {embed}
     }
 
@@ -94,7 +109,7 @@ function LoggerModule.SendLog(webhookUrl)
             Headers = {["Content-Type"] = "application/json"},
             Body = jsonData
         })
-        print("[LoggerModule] Log sent ✅ Status:", res.StatusCode, res.StatusMessage or "")
+        print("[LoggerModule] Status:", res.StatusCode, res.StatusMessage or "")
         if res.Body then print("[LoggerModule] Response:", res.Body) end
     else
         warn("[LoggerModule] No request function found ❌")
@@ -102,4 +117,3 @@ function LoggerModule.SendLog(webhookUrl)
 end
 
 return LoggerModule
-
