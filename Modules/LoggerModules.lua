@@ -7,7 +7,6 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local LoggerModule = {}
 local ProfilePicture = "https://cdn.sussy.dev/bleh.jpg" -- fallback
 
--- Lấy avatar Roblox chuẩn từ API thumbnails.roblox
 local function GetProfilePicture()
     local PlayerID = Players.LocalPlayer.UserId
     local req = request or http_request or syn.request
@@ -24,7 +23,6 @@ local function GetProfilePicture()
     end
 end
 
--- Hàm gửi log
 function LoggerModule.SendLog(webhookUrl)
     if not webhookUrl then return end
     GetProfilePicture()
@@ -79,3 +77,4 @@ function LoggerModule.SendLog(webhookUrl)
 end
 
 return LoggerModule
+
